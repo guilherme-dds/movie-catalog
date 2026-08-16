@@ -24,3 +24,8 @@ env
 *.njsproj
 *.sln
 *.sw?
+/src/generated/prisma
+
+/src/generated/prisma
+
+/src/generated/prisma
