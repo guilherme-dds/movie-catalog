@@ -18,4 +18,17 @@ model Usuario {
   email     String   @unique @db.VarChar(150)
   senhaHash String   @db.VarChar(255)
   criadoEm  DateTime @default(now())
+
+  favoritos Favorito[]
+}
+
+model Favorito {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int      @unique
+  tmdbMovieId Int      @unique
+  titulo      String   @db.VarChar(255)
+  posterPath  String?  @db.VarChar(255)
+  criadoEm    DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 }
