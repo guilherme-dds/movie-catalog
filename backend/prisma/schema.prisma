@@ -19,7 +19,8 @@ model Usuario {
   senhaHash String   @db.VarChar(255)
   criadoEm  DateTime @default(now())
 
-  favoritos Favorito[]
+  favoritos   Favorito[]
+  comentarios Comentario[]
 }
 
 model Favorito {
@@ -28,6 +29,16 @@ model Favorito {
   tmdbMovieId Int      @unique
   titulo      String   @db.VarChar(255)
   posterPath  String?  @db.VarChar(255)
+  criadoEm    DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+model Comentario {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int
+  tmdbMovieId Int
+  texto       String
   criadoEm    DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
