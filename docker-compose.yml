@@ -18,10 +18,14 @@ services:
     container_name: cinehanks-backend
     expose:
       - "3333"
-    env_file:
-      - ./backend/.env
     environment:
-      - PORT=3333
+      PORT: 3333
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_PORT: ${DATABASE_PORT}
+      JWT_SECRET: ${JWT_SECRET}
     restart: unless-stopped
 
   frontend:
@@ -31,8 +35,9 @@ services:
     container_name: cinehanks-frontend
     expose:
       - "5173"
-    env_file:
-      - ./frontend/.env
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      VITE_TMDB_API_KEY: ${VITE_TMDB_API_KEY}
     depends_on:
       - backend
     restart: unless-stopped
