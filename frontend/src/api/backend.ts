@@ -1,6 +1,6 @@
 import type { User, AuthResponse, FavoriteItem, CommentItem } from "../types";
 
-const API_BASE_URL = "http://localhost:3333";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "/api";
 
 export async function loginApi(email: string, password: string): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth`, {
@@ -35,7 +35,7 @@ export async function registerApi(nome: string, email: string, password: string)
 }
 
 export async function getFavoritesApi(token: string): Promise<FavoriteItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/favorite`, {
+  const response = await fetch(`${API_BASE_URL}/favorite`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -56,7 +56,7 @@ export async function addFavoriteApi(
   titulo: string,
   posterPath: string | null
 ): Promise<FavoriteItem> {
-  const response = await fetch(`${API_BASE_URL}/api/favorite`, {
+  const response = await fetch(`${API_BASE_URL}/favorite`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -75,7 +75,7 @@ export async function addFavoriteApi(
 }
 
 export async function deleteFavoriteApi(token: string, favoriteId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/favorite/${favoriteId}`, {
+  const response = await fetch(`${API_BASE_URL}/favorite/${favoriteId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -90,7 +90,7 @@ export async function deleteFavoriteApi(token: string, favoriteId: number): Prom
 }
 
 export async function getCommentsApi(token: string, movieId: number): Promise<CommentItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/comment/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/comment/${movieId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -110,7 +110,7 @@ export async function addCommentApi(
   tmdbMovieId: number,
   texto: string
 ): Promise<CommentItem> {
-  const response = await fetch(`${API_BASE_URL}/api/comment`, {
+  const response = await fetch(`${API_BASE_URL}/comment`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -129,7 +129,7 @@ export async function addCommentApi(
 }
 
 export async function deleteCommentApi(token: string, commentId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/comment/delete/${commentId}`, {
+  const response = await fetch(`${API_BASE_URL}/comment/delete/${commentId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,

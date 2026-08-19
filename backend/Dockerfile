@@ -19,7 +19,7 @@ RUN npx prisma generate
 COPY . .
 
 # Expose backend port
-EXPOSE 3333
+EXPOSE 3334
 
 # Generate client and start dev server
 CMD ["sh", "-c", "npx prisma generate && npm run dev"]

@@ -12,23 +12,32 @@ const authcontroller = new AuthController();
 
 export const router = Router();
 
+// Users & Auth Routes
 router.get("/users", AuthMiddleware, usercontroller.index);
+router.get("/api/users", AuthMiddleware, usercontroller.index);
+
 router.post("/create", usercontroller.store);
+router.post("/api/create", usercontroller.store);
 
 router.post("/auth", authcontroller.authenticate);
+router.post("/api/auth", authcontroller.authenticate);
 
+// Favorites Routes
+router.post("/favorite", AuthMiddleware, favoritecontroller.store);
 router.post("/api/favorite", AuthMiddleware, favoritecontroller.store);
+
+router.get("/favorite", AuthMiddleware, favoritecontroller.favoriteList);
 router.get("/api/favorite", AuthMiddleware, favoritecontroller.favoriteList);
+
+router.delete("/favorite/:id", AuthMiddleware, favoritecontroller.delete);
 router.delete("/api/favorite/:id", AuthMiddleware, favoritecontroller.delete);
 
+// Comments Routes
+router.post("/comment", AuthMiddleware, commentcontroller.store);
 router.post("/api/comment", AuthMiddleware, commentcontroller.store);
-router.delete(
-  "/api/comment/delete/:id",
-  AuthMiddleware,
-  commentcontroller.delete,
-);
-router.get(
-  "/api/comment/:movieId",
-  AuthMiddleware,
-  commentcontroller.commentList,
-);
+
+router.delete("/comment/delete/:id", AuthMiddleware, commentcontroller.delete);
+router.delete("/api/comment/delete/:id", AuthMiddleware, commentcontroller.delete);
+
+router.get("/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
+router.get("/api/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
