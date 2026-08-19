@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -25,13 +23,15 @@ model Usuario {
 
 model Favorito {
   id          Int      @id @default(autoincrement())
-  usuarioId   Int      @unique
-  tmdbMovieId Int      @unique
+  usuarioId   Int
+  tmdbMovieId Int
   titulo      String   @db.VarChar(255)
   posterPath  String?  @db.VarChar(255)
   criadoEm    DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@unique([usuarioId, tmdbMovieId])
 }
 
 model Comentario {
