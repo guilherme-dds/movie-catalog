@@ -162,4 +162,4 @@ A aplicação frontend iniciará por padrão em `http://localhost:5173`.
 
 ## Autor
 
-Desenvolvido por **Guilherme Dias** como parte da disciplina de Introdução à Computação em Nuvem, sob orientação do professor @siriani.
+Desenvolvido por **Guilherme Dias** como parte da disciplina de Introdução à Computação em Nuvem, sob orientação do professor [@siriani](https://github.com/siriani).
