@@ -13,7 +13,6 @@ export class FavoriteController {
     const movieIdNum = Number(tmdbMovieId);
 
     try {
-      // 1. Check if already favorited by this user
       const existingUserFav = await prisma.favorito.findFirst({
         where: {
           usuarioId: userId,
@@ -25,7 +24,6 @@ export class FavoriteController {
         return res.status(200).json({ newFavorite: existingUserFav });
       }
 
-      // 2. Check if a favorite entry for this tmdbMovieId already exists in DB
       const existingMovieFav = await prisma.favorito.findFirst({
         where: {
           tmdbMovieId: movieIdNum,
@@ -36,7 +34,6 @@ export class FavoriteController {
         return res.status(200).json({ newFavorite: existingMovieFav });
       }
 
-      // 3. Create new favorite entry
       const newFavorite = await prisma.favorito.create({
         data: {
           usuarioId: userId,
@@ -50,7 +47,6 @@ export class FavoriteController {
     } catch (error: any) {
       console.error("Erro ao salvar favorito:", error);
 
-      // Fallback if unique constraint error occurs (e.g. tmdbMovieId or usuarioId already exists in DB)
       try {
         const fallback = await prisma.favorito.findFirst({
           where: {
@@ -76,12 +72,10 @@ export class FavoriteController {
     const { userId } = req;
 
     try {
-      // Return favorites for this user or all favorites if usuarioId key is global
       const favoriteList = await prisma.favorito.findMany({
         where: {
           OR: [
             { usuarioId: userId },
-            // Also include favorites matching movies saved in table
           ],
         },
         orderBy: {
@@ -101,7 +95,6 @@ export class FavoriteController {
     const { userId } = req;
 
     try {
-      // Find favorite by primary key ID or by tmdbMovieId
       const favorite = await prisma.favorito.findFirst({
         where: {
           OR: [
