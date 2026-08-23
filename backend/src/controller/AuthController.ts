@@ -1,34 +1,55 @@
 import type { Request, Response } from "express";
-import prisma from "../utils/prisma.js";
-import { compare } from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 export class AuthController {
   async authenticate(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3334";
 
-    const user = await prisma.usuario.findUnique({
-      where: {
-        email,
-      },
-    });
+    try {
+      const response = await fetch(`${authServiceUrl}/auth/authenticate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body),
+      });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        console.error("Non-JSON response from auth-service:", text);
+        return res.status(500).json({ error: "Invalid response format from auth-service" });
+      }
+
+      return res.status(response.status).json(data);
+    } catch (error) {
+      console.error("Error connecting to internal auth-service:", error);
+      return res.status(500).json({ error: "Auth service unavailable" });
     }
+  }
 
-    const isValuePassword = await compare(password, user.senhaHash);
+  async refresh(req: Request, res: Response) {
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3334";
 
-    if (!isValuePassword) {
-      return res.status(401).json({ message: "Password invalid" });
+    try {
+      const response = await fetch(`${authServiceUrl}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body),
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        console.error("Non-JSON response from auth-service:", text);
+        return res.status(500).json({ error: "Invalid response format from auth-service" });
+      }
+
+      return res.status(response.status).json(data);
+    } catch (error) {
+      console.error("Error connecting to internal auth-service:", error);
+      return res.status(500).json({ error: "Auth service unavailable" });
     }
-
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: "1h",
-    });
-
-    const { id } = user;
-
-    return res.json({ user: { id, email }, token });
   }
 }

@@ -5,6 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['guilherme-santos-isw055.lapps.studio'],
+    allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_BACKEND_TARGET || 'http://backend:3333',
+        changeOrigin: true,
+      },
+    },
   },
 })

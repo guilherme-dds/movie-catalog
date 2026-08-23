@@ -22,6 +22,10 @@ router.post("/api/create", usercontroller.store);
 router.post("/auth", authcontroller.authenticate);
 router.post("/api/auth", authcontroller.authenticate);
 
+router.post("/auth/refresh", authcontroller.refresh);
+router.post("/api/auth/refresh", authcontroller.refresh);
+
+
 // Favorites Routes
 router.post("/favorite", AuthMiddleware, favoritecontroller.store);
 router.post("/api/favorite", AuthMiddleware, favoritecontroller.store);

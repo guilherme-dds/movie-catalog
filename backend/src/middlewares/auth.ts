@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export function AuthMiddleware(
+export async function AuthMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
@@ -18,23 +18,42 @@ export function AuthMiddleware(
     return res.status(401).json({ error: "Token invalid" });
   }
 
-  const JWT_SECRET = process.env.JWT_SECRET;
-
-  if (!JWT_SECRET) {
-    throw new Error("JWT_SECRET não configurado");
-  }
+  const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3334";
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const response = await fetch(`${authServiceUrl}/auth/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authorization,
+      },
+      body: JSON.stringify({ token }),
+    });
 
-    if (typeof decoded === "string" || typeof decoded.id !== "number") {
-      return res.status(401).json({ error: "Token invalid" });
+    const data = (await response.json()) as { valid?: boolean; userId?: number; error?: string };
+
+    if (response.ok && data.valid && typeof data.userId === "number") {
+      req.userId = data.userId;
+      return next();
     }
 
-    req.userId = decoded.id;
+    return res.status(401).json({ error: data.error || "Token invalid" });
+  } catch (error) {
+    console.error("Error verifying token with auth-service:", error);
 
-    next();
-  } catch {
+    // Fallback to local JWT verification if available
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (JWT_SECRET) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (typeof decoded !== "string" && typeof decoded.id === "number") {
+          req.userId = decoded.id;
+          return next();
+        }
+      } catch {}
+    }
+
     return res.status(401).json({ error: "Token invalid" });
   }
 }
+

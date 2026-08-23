@@ -11,15 +11,17 @@ services:
       - backend
     restart: unless-stopped
 
-  backend:
+  auth-service:
     build:
-      context: ./backend
+      context: ./auth-service
       dockerfile: Dockerfile
-    container_name: cinehanks-backend
+    container_name: cinehanks-auth-service
     expose:
-      - "3333"
+      - "3334"
+    env_file:
+      - .env
     environment:
-      PORT: 3333
+      PORT: 3334
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
@@ -28,16 +30,43 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     restart: unless-stopped
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cinehanks-backend
+    expose:
+      - "3333"
+    env_file:
+      - .env
+    environment:
+      PORT: 3333
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_PORT: ${DATABASE_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3334
+    depends_on:
+      - auth-service
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: cinehanks-frontend
+    ports:
+      - "5173:5173"
     expose:
       - "5173"
+    env_file:
+      - .env
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL}
       VITE_TMDB_API_KEY: ${VITE_TMDB_API_KEY}
     depends_on:
       - backend
     restart: unless-stopped
+
