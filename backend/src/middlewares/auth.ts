@@ -30,10 +30,13 @@ export async function AuthMiddleware(
       body: JSON.stringify({ token }),
     });
 
-    const data = (await response.json()) as { valid?: boolean; userId?: number; error?: string };
+    const data = (await response.json()) as { valid?: boolean; userId?: string; role?: string; error?: string };
 
-    if (response.ok && data.valid && typeof data.userId === "number") {
+    if (response.ok && data.valid && typeof data.userId === "string") {
       req.userId = data.userId;
+      if (data.role) {
+        req.userRole = data.role;
+      }
       return next();
     }
 
@@ -45,9 +48,12 @@ export async function AuthMiddleware(
     const JWT_SECRET = process.env.JWT_SECRET;
     if (JWT_SECRET) {
       try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (typeof decoded !== "string" && typeof decoded.id === "number") {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        if (typeof decoded !== "string" && typeof decoded.id === "string") {
           req.userId = decoded.id;
+          if (decoded.role) {
+            req.userRole = decoded.role;
+          }
           return next();
         }
       } catch {}
@@ -56,4 +62,3 @@ export async function AuthMiddleware(
     return res.status(401).json({ error: "Token invalid" });
   }
 }
-

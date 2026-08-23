@@ -8,10 +8,11 @@ datasource db {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid()) @db.VarChar(36)
   nome      String   @db.VarChar(100)
   email     String   @unique @db.VarChar(150)
   senhaHash String   @db.VarChar(255)
+  role      String   @default("user") @db.VarChar(20)
   criadoEm  DateTime @default(now())
 
   refreshTokens RefreshToken[]
@@ -20,7 +21,7 @@ model Usuario {
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique @db.VarChar(255)
-  usuarioId Int
+  usuarioId String   @db.VarChar(36)
   expiresAt DateTime
   criadoEm  DateTime @default(now())
 

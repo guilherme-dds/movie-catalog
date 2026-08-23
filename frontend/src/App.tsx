@@ -94,7 +94,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
           try {
             const favList = await getFavoritesApi(newToken);
             setFavorites(favList);
-          } catch {}
+          } catch { }
         }
       }
     }
@@ -316,7 +316,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
       {/* Footer */}
       <footer className="app-footer">
         <p>
-          <Film size={16} /> CineHanks Catalog • Desenvolvido por Guilherme Dias
+          <Film size={16} /> CineHanks • Desenvolvido por Guilherme Dias
         </p>
       </footer>
 

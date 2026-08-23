@@ -34,8 +34,8 @@ export class AuthController {
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
-      // Access token expires in 15 minutes
-      const token = jwt.sign({ id: user.id }, JWT_SECRET, {
+      // Access token expires in 15 minutes, includes id (UUID) and role
+      const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
         expiresIn: "15m",
       });
 
@@ -52,10 +52,10 @@ export class AuthController {
         },
       });
 
-      const { id } = user;
+      const { id, nome, role } = user;
 
       return res.json({
-        user: { id, email },
+        user: { id, email, nome, role },
         token,
         refreshToken: refreshTokenValue,
       });
@@ -92,9 +92,11 @@ export class AuthController {
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
-      const newToken = jwt.sign({ id: storedToken.usuarioId }, JWT_SECRET, {
-        expiresIn: "15m",
-      });
+      const newToken = jwt.sign(
+        { id: storedToken.usuarioId, role: storedToken.usuario.role },
+        JWT_SECRET,
+        { expiresIn: "15m" }
+      );
 
       return res.json({
         token: newToken,
@@ -127,13 +129,13 @@ export class AuthController {
         return res.status(500).json({ valid: false, error: "JWT_SECRET is not configured" });
       }
 
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-      if (typeof decoded === "string" || typeof decoded.id !== "number") {
+      if (typeof decoded === "string" || typeof decoded.id !== "string") {
         return res.status(401).json({ valid: false, error: "Token invalid" });
       }
 
-      return res.json({ valid: true, userId: decoded.id });
+      return res.json({ valid: true, userId: decoded.id, role: decoded.role });
     } catch (error: any) {
       return res.status(401).json({ valid: false, error: error.message || "Token invalid" });
     }

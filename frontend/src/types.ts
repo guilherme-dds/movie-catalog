@@ -1,7 +1,8 @@
 export interface User {
-  id: number;
+  id: string;
   nome?: string;
   email: string;
+  role?: "admin" | "user" | string;
 }
 
 export interface AuthResponse {
@@ -15,10 +16,9 @@ export interface RefreshTokenResponse {
   refreshToken?: string;
 }
 
-
 export interface FavoriteItem {
   id: number;
-  usuarioId: number;
+  usuarioId: string;
   tmdbMovieId: number;
   titulo: string;
   posterPath: string | null;
@@ -27,7 +27,7 @@ export interface FavoriteItem {
 
 export interface CommentItem {
   id: number;
-  usuarioId: number;
+  usuarioId: string;
   tmdbMovieId: number;
   texto: string;
   criadoEm?: string;
