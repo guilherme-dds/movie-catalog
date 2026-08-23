@@ -10,30 +10,26 @@ export class FavoriteController {
       return res.status(400).json({ error: "tmdbMovieId e titulo são obrigatórios." });
     }
 
+    if (!userId) {
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+
     const movieIdNum = Number(tmdbMovieId);
 
     try {
-      const existingUserFav = await prisma.favorito.findFirst({
+      // Verificar se o usuário já favoritou este filme
+      const existingFav = await prisma.favorito.findFirst({
         where: {
           usuarioId: userId,
           tmdbMovieId: movieIdNum,
         },
       });
 
-      if (existingUserFav) {
-        return res.status(200).json({ newFavorite: existingUserFav });
+      if (existingFav) {
+        return res.status(200).json({ newFavorite: existingFav });
       }
 
-      const existingMovieFav = await prisma.favorito.findFirst({
-        where: {
-          tmdbMovieId: movieIdNum,
-        },
-      });
-
-      if (existingMovieFav) {
-        return res.status(200).json({ newFavorite: existingMovieFav });
-      }
-
+      // Criar novo favorito para o usuário logado
       const newFavorite = await prisma.favorito.create({
         data: {
           usuarioId: userId,
@@ -46,24 +42,6 @@ export class FavoriteController {
       return res.status(201).json({ newFavorite });
     } catch (error: any) {
       console.error("Erro ao salvar favorito:", error);
-
-      try {
-        const fallback = await prisma.favorito.findFirst({
-          where: {
-            OR: [
-              { tmdbMovieId: movieIdNum },
-              { usuarioId: userId },
-            ],
-          },
-        });
-
-        if (fallback) {
-          return res.status(200).json({ newFavorite: fallback });
-        }
-      } catch (innerErr) {
-        console.error("Fallback error:", innerErr);
-      }
-
       return res.status(500).json({ error: "Internal server error", message: error?.message });
     }
   }
@@ -71,12 +49,14 @@ export class FavoriteController {
   async favoriteList(req: Request, res: Response) {
     const { userId } = req;
 
+    if (!userId) {
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+
     try {
       const favoriteList = await prisma.favorito.findMany({
         where: {
-          OR: [
-            { usuarioId: userId },
-          ],
+          usuarioId: userId,
         },
         orderBy: {
           criadoEm: "desc",
@@ -94,9 +74,14 @@ export class FavoriteController {
     const paramId = Number(req.params.id);
     const { userId } = req;
 
+    if (!userId) {
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+
     try {
       const favorite = await prisma.favorito.findFirst({
         where: {
+          usuarioId: userId,
           OR: [
             { id: paramId },
             { tmdbMovieId: paramId },
