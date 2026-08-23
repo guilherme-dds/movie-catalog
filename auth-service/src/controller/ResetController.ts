@@ -23,13 +23,63 @@ export class ResetController {
         process.env.FRONTEND_URL || "https://guilherme-santos-isw055.lapps.studio";
       const resetLink = `${frontendUrl}/reset-password?token=${tokenRecord.token}`;
 
-      // Envio utilizando Mailtrap
-      const rawToken = process.env.MAILTRAP_TOKEN || "";
-      const TOKEN_API = rawToken.replace(/^["']|["']$/g, "").trim();
+      const rawBrevoKey = process.env.BREVO_API_KEY || "";
+      const brevoApiKey = rawBrevoKey.replace(/^["']|["']$/g, "").trim();
+
+      if (brevoApiKey) {
+        // Envio via Brevo REST API v3 com o e-mail verificado guilherme.dds.dev@gmail.com
+        const senderEmail =
+          process.env.BREVO_SENDER_EMAIL || "guilherme.dds.dev@gmail.com";
+
+        const brevoResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            "api-key": brevoApiKey,
+          },
+          body: JSON.stringify({
+            sender: {
+              name: "Movie Catalog",
+              email: senderEmail.trim(),
+            },
+            to: [
+              {
+                email: user.email,
+                name: user.nome || user.email,
+              },
+            ],
+            subject: "Movie Catalog - Redefinição de Senha",
+            textContent: `Clique no link a seguir para redefinir sua senha: ${resetLink}`,
+            htmlContent: `<div style="font-family: sans-serif; padding: 20px;">
+              <h2>Redefinição de Senha - Movie Catalog</h2>
+              <p>Olá, ${user.nome || "Usuário"}!</p>
+              <p>Recebemos uma solicitação para redefinir sua senha. Clique no link abaixo para continuar:</p>
+              <p><a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background-color: #e50914; color: #fff; text-decoration: none; border-radius: 5px;">Redefinir Senha</a></p>
+              <p>Ou copie e cole o seguinte link no seu navegador:</p>
+              <p><a href="${resetLink}">${resetLink}</a></p>
+            </div>`,
+          }),
+        });
+
+        if (!brevoResponse.ok) {
+          const errData = await brevoResponse.text();
+          console.error("Brevo API error:", brevoResponse.status, errData);
+          return res.status(500).json({
+            error: `Erro ao enviar e-mail via Brevo API (${brevoResponse.status}): ${errData}`
+          });
+        }
+
+        return res.json({ message: "Password reset email sent via Brevo" });
+      }
+
+      // Envio de fallback utilizando Mailtrap
+      const rawMailtrapToken = process.env.MAILTRAP_TOKEN || "";
+      const TOKEN_API = rawMailtrapToken.replace(/^["']|["']$/g, "").trim();
 
       if (!TOKEN_API) {
-        console.warn("MAILTRAP_TOKEN is not configured");
-        return res.status(500).json({ error: "MAILTRAP_TOKEN is not configured" });
+        console.warn("Nem BREVO_API_KEY nem MAILTRAP_TOKEN foram configurados.");
+        return res.status(500).json({ error: "Nenhum provedor de e-mail está configurado (Brevo ou Mailtrap)." });
       }
 
       const client = new MailtrapClient({ token: TOKEN_API });
@@ -55,7 +105,7 @@ export class ResetController {
         text: `Clique no link a seguir para redefinir sua senha: ${resetLink}`,
       });
 
-      return res.json({ message: "Password reset email sent" });
+      return res.json({ message: "Password reset email sent via Mailtrap" });
     } catch (error: any) {
       console.error("Error in reset password controller:", error);
       return res.status(500).json({ error: error.message || "Internal server error" });
