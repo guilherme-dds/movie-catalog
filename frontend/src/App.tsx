@@ -8,6 +8,7 @@ import { Navbar } from "./components/Navbar";
 import { MovieCard } from "./components/MovieCard";
 import { MovieDetailsModal } from "./components/MovieDetailsModal";
 import { AuthPage } from "./components/AuthPage";
+import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { Toast, type ToastMessage } from "./components/Toast";
 
 import { Film, Clapperboard, Heart, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
@@ -99,7 +100,6 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
       }
     }
   }, [token, refreshSession]);
-
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -341,6 +341,24 @@ const AppContent: React.FC = () => {
   const showToast = (type: "success" | "error" | "info", text: string) => {
     setToast({ id: Date.now().toString(), type, text });
   };
+
+  const isResetRoute =
+    window.location.pathname.includes("reset-password") ||
+    window.location.search.includes("token=");
+
+  if (isResetRoute) {
+    return (
+      <>
+        <ResetPasswordPage
+          showToast={showToast}
+          onGoToLogin={() => {
+            window.location.href = "/";
+          }}
+        />
+        <Toast toast={toast} onClose={() => setToast(null)} />
+      </>
+    );
+  }
 
   if (isLoading) {
     return (

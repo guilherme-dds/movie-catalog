@@ -25,6 +25,14 @@ router.post("/api/auth", authcontroller.authenticate);
 router.post("/auth/refresh", authcontroller.refresh);
 router.post("/api/auth/refresh", authcontroller.refresh);
 
+router.post("/auth/reset", authcontroller.reset);
+router.post("/api/auth/reset", authcontroller.reset);
+
+router.post("/auth/reset/confirm", authcontroller.resetConfirm);
+router.post("/api/auth/reset/confirm", authcontroller.resetConfirm);
+
+
+
 
 // Favorites Routes
 router.post("/favorite", AuthMiddleware, favoritecontroller.store);

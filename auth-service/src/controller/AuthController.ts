@@ -34,12 +34,10 @@ export class AuthController {
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
-      // Access token expires in 15 minutes, includes id (UUID) and role
       const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
         expiresIn: "15m",
       });
 
-      // Generate refresh token valid for 7 days
       const refreshTokenValue = randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);

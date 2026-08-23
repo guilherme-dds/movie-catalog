@@ -44,7 +44,6 @@ export async function AuthMiddleware(
   } catch (error) {
     console.error("Error verifying token with auth-service:", error);
 
-    // Fallback to local JWT verification if available
     const JWT_SECRET = process.env.JWT_SECRET;
     if (JWT_SECRET) {
       try {
@@ -56,7 +55,7 @@ export async function AuthMiddleware(
           }
           return next();
         }
-      } catch {}
+      } catch { }
     }
 
     return res.status(401).json({ error: "Token invalid" });

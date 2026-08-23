@@ -38,6 +38,25 @@ export async function refreshTokenApi(refreshToken: string): Promise<RefreshToke
   return parseResponse<RefreshTokenResponse>(response, "Falha ao renovar sessão");
 }
 
+export async function requestPasswordResetApi(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  return parseResponse<{ message: string }>(response, "Erro ao solicitar redefinição de senha");
+}
+
+export async function confirmPasswordResetApi(token: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/reset/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  return parseResponse<{ message: string }>(response, "Erro ao redefinir senha");
+}
 
 export async function registerApi(nome: string, email: string, password: string): Promise<{ user: User }> {
   const response = await fetch(`${API_BASE_URL}/create`, {

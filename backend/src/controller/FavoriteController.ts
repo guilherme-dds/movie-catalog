@@ -17,7 +17,6 @@ export class FavoriteController {
     const movieIdNum = Number(tmdbMovieId);
 
     try {
-      // Verificar se o usuário já favoritou este filme
       const existingFav = await prisma.favorito.findFirst({
         where: {
           usuarioId: userId,
@@ -29,7 +28,6 @@ export class FavoriteController {
         return res.status(200).json({ newFavorite: existingFav });
       }
 
-      // Criar novo favorito para o usuário logado
       const newFavorite = await prisma.favorito.create({
         data: {
           usuarioId: userId,

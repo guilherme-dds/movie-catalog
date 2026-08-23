@@ -16,6 +16,7 @@ model Usuario {
   criadoEm  DateTime @default(now())
 
   refreshTokens RefreshToken[]
+  resetTokens ResetToken[]
 }
 
 model RefreshToken {
@@ -24,6 +25,16 @@ model RefreshToken {
   usuarioId String   @db.VarChar(36)
   expiresAt DateTime
   criadoEm  DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+}
+
+model ResetToken {
+  token     String   @id @default(uuid()) @db.VarChar(36)
+  usuarioId String   @db.VarChar(36)
+  expiresAt DateTime
+  criadoEm  DateTime @default(now())
+  usado     Boolean  @default(false)
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 }
