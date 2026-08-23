@@ -46,7 +46,7 @@ interface MainCatalogProps {
 }
 
 const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, refreshSession } = useAuth();
 
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -86,10 +86,20 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
     try {
       const favList = await getFavoritesApi(token);
       setFavorites(favList);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao carregar favoritos do usuário:", err);
+      if (err.message && (err.message.includes("Token invalid") || err.message.includes("401"))) {
+        const newToken = await refreshSession();
+        if (newToken) {
+          try {
+            const favList = await getFavoritesApi(newToken);
+            setFavorites(favList);
+          } catch {}
+        }
+      }
     }
-  }, [token]);
+  }, [token, refreshSession]);
+
 
   useEffect(() => {
     if (isAuthenticated) {

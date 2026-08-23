@@ -1,4 +1,4 @@
-import type { User, AuthResponse, FavoriteItem, CommentItem } from "../types";
+import type { User, AuthResponse, RefreshTokenResponse, FavoriteItem, CommentItem } from "../types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "/api";
 
@@ -27,6 +27,17 @@ export async function loginApi(email: string, password: string): Promise<AuthRes
 
   return parseResponse<AuthResponse>(response, "Falha na autenticação");
 }
+
+export async function refreshTokenApi(refreshToken: string): Promise<RefreshTokenResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  return parseResponse<RefreshTokenResponse>(response, "Falha ao renovar sessão");
+}
+
 
 export async function registerApi(nome: string, email: string, password: string): Promise<{ user: User }> {
   const response = await fetch(`${API_BASE_URL}/create`, {
