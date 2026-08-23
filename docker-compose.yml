@@ -27,7 +27,15 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: ${NODE_ENV}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      MAILTRAP_TOKEN: ${MAILTRAP_TOKEN}
+      MAILTRAP_SENDER_EMAIL: ${MAILTRAP_SENDER_EMAIL}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      FRONTEND_URL: ${FRONTEND_URL}
     restart: unless-stopped
 
   backend:
@@ -46,6 +54,7 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       AUTH_SERVICE_URL: http://auth-service:3334
     depends_on:
@@ -69,4 +78,3 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
