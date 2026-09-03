@@ -1583,6 +1583,7 @@ input, textarea {
   gap: 1rem;
   margin-bottom: 1.2rem;
   padding-bottom: 1rem;
+  padding-right: 3.2rem;
   border-bottom: 1px solid var(--border-subtle);
   flex-wrap: wrap;
 }
@@ -1591,6 +1592,8 @@ input, textarea {
   display: flex;
   align-items: center;
   gap: 0.8rem;
+  flex: 1;
+  min-width: 250px;
 }
 
 .admin-icon-wrapper {
@@ -1621,8 +1624,10 @@ input, textarea {
 
 .admin-stats-row {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
 }
+
 
 .admin-stat-chip {
   display: flex;
