@@ -11,6 +11,27 @@ Aplicação web fullstack para exploração, avaliação e gerenciamento de film
 - **Busca e Paginação**: Filtro em tempo real por título, título original, personagem ou ano, com paginação interativa.
 - **Favoritos Personalizados**: Adição e remoção de filmes da lista de favoritos do usuário autenticado.
 - **Sistema de Comentários**: Inclusão e exclusão de comentários em cada filme com sincronização no banco de dados.
+- **Moderação por Administrador**: Painel exclusivo para usuários com role `ADMIN` realizarem busca, visualização global e remoção de qualquer comentário do sistema.
+
+---
+
+## Permissões por Tipo de Usuário (Roles)
+
+O sistema conta com controle de acesso baseado em funções (*Role-Based Access Control - RBAC*), diferenciando as permissões entre usuários comuns e administradores:
+
+### Usuário Comum (`USER`)
+- **Navegação e Busca**: Explorar o catálogo de filmes do Tom Hanks, utilizar filtros por título, personagem ou ano e visualizar detalhes completos dos filmes.
+- **Favoritos**: Adicionar e remover filmes da sua lista pessoal de favoritos.
+- **Comentários**: Publicar comentários nos filmes e excluir **apenas os seus próprios** comentários.
+- **Gerenciamento de Conta**: Criar conta, realizar login, encerrar sessão e redefinir senha.
+
+### Administrador (`ADMIN`)
+Possui **todas as permissões do Usuário Comum (`USER`)**, acrescido das seguintes funcionalidades de gestão e moderação:
+- **Painel de Moderação na Navbar**: Acesso ao botão exclusivo **Moderação (ADMIN)** na barra de navegação.
+- **Visualização Global de Comentários**: Acesso à lista consolidada de todos os comentários feitos no sistema por qualquer usuário, incluindo informações do autor (nome e e-mail).
+- **Exclusão Irrestrita de Comentários**: Capacidade de moderar e remover qualquer comentário do banco de dados.
+- **Segurança e Proteção de API**: Acesso exclusivo a endpoints restritos (`/api/comment/admin/all`) validados por middleware de autorização backend.
+
 
 ---
 
@@ -155,8 +176,10 @@ A aplicação frontend iniciará por padrão em `http://localhost:5173`.
 
 ### Comentários
 - `GET /api/comment/:movieId`: Lista os comentários de um filme específico (Requer JWT).
+- `GET /api/comment/admin/all`: Lista todos os comentários do sistema com dados dos autores (Requer JWT e role `ADMIN`).
 - `POST /api/comment`: Adiciona um comentário em um filme (Requer JWT).
-- `DELETE /api/comment/delete/:id`: Exclui um comentário pelo ID (Requer JWT).
+- `DELETE /api/comment/delete/:id`: Exclui um comentário pelo ID (Requer JWT; autor do comentário ou `ADMIN`).
+
 
 ---
 
