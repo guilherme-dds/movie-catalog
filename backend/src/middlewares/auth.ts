@@ -61,3 +61,16 @@ export async function AuthMiddleware(
     return res.status(401).json({ error: "Token invalid" });
   }
 }
+
+export async function AdminMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (req.userRole?.toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Acesso restrito para administradores." });
+  }
+
+  return next();
+}
+

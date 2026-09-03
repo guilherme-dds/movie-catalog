@@ -1,5 +1,5 @@
 import React from "react";
-import { Film, Heart, Search, LogOut, User as UserIcon, Sparkles } from "lucide-react";
+import { Film, Heart, Search, LogOut, User as UserIcon, Sparkles, ShieldAlert } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 interface NavbarProps {
@@ -9,6 +9,7 @@ interface NavbarProps {
   setShowOnlyFavorites: (val: boolean) => void;
   favoritesCount: number;
   openAuthModal: () => void;
+  openAdminModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,8 +19,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   setShowOnlyFavorites,
   favoritesCount,
   openAuthModal,
+  openAdminModal,
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
 
   return (
     <header className="navbar-header">
@@ -66,6 +69,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             {favoritesCount > 0 && <span className="favorites-badge">{favoritesCount}</span>}
           </button>
 
+          {/* Admin Moderation Button */}
+          {isAuthenticated && isAdmin && openAdminModal && (
+            <button
+              className="nav-btn admin-nav-btn"
+              onClick={openAdminModal}
+              title="Painel de Moderação de Comentários (ADMIN)"
+            >
+              <ShieldAlert size={18} />
+              <span className="btn-label">Moderação</span>
+              <span className="admin-pill">ADMIN</span>
+            </button>
+          )}
+
           {/* User Auth Section */}
           {isAuthenticated ? (
             <div className="user-menu">
@@ -90,3 +106,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+

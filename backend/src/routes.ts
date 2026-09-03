@@ -3,7 +3,7 @@ import { UserController } from "./controller/UserController.js";
 import { AuthController } from "./controller/AuthController.js";
 import { FavoriteController } from "./controller/FavoriteController.js";
 import { CommentController } from "./controller/CommentController.js";
-import { AuthMiddleware } from "./middlewares/auth.js";
+import { AuthMiddleware, AdminMiddleware } from "./middlewares/auth.js";
 
 const usercontroller = new UserController();
 const favoritecontroller = new FavoriteController();
@@ -45,6 +45,9 @@ router.delete("/favorite/:id", AuthMiddleware, favoritecontroller.delete);
 router.delete("/api/favorite/:id", AuthMiddleware, favoritecontroller.delete);
 
 // Comments Routes
+router.get("/comment/admin/all", AuthMiddleware, AdminMiddleware, commentcontroller.allCommentsAdmin);
+router.get("/api/comment/admin/all", AuthMiddleware, AdminMiddleware, commentcontroller.allCommentsAdmin);
+
 router.post("/comment", AuthMiddleware, commentcontroller.store);
 router.post("/api/comment", AuthMiddleware, commentcontroller.store);
 
@@ -53,3 +56,4 @@ router.delete("/api/comment/delete/:id", AuthMiddleware, commentcontroller.delet
 
 router.get("/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
 router.get("/api/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
+

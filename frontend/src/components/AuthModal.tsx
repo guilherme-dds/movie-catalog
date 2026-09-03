@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { X, Mail, Lock, User as UserIcon, Eye, EyeOff, Film, LogIn, UserPlus, KeyRound } from "lucide-react";
+import { X, Mail, Lock, User as UserIcon, Eye, EyeOff, Film, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+
 import { requestPasswordResetApi } from "../api/backend";
 
 interface AuthModalProps {

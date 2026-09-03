@@ -148,3 +148,15 @@ export async function deleteCommentApi(token: string, commentId: number): Promis
 
   await parseResponse<void>(response, "Erro ao deletar comentário");
 }
+
+export async function getAllCommentsAdminApi(token: string): Promise<CommentItem[]> {
+  const response = await fetch(`${API_BASE_URL}/comment/admin/all`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await parseResponse<{ comments?: CommentItem[] }>(response, "Erro ao buscar comentários para moderação");
+  return data.comments || [];
+}
+

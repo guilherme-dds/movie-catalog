@@ -7,11 +7,13 @@ import { getFavoritesApi, addFavoriteApi, deleteFavoriteApi } from "./api/backen
 import { Navbar } from "./components/Navbar";
 import { MovieCard } from "./components/MovieCard";
 import { MovieDetailsModal } from "./components/MovieDetailsModal";
+import { AdminCommentsModal } from "./components/AdminCommentsModal";
 import { AuthPage } from "./components/AuthPage";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { Toast, type ToastMessage } from "./components/Toast";
 
 import { Film, Clapperboard, Heart, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+
 
 const ITEMS_PER_PAGE = 8;
 
@@ -60,6 +62,8 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
 
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [favoritingMovieIds, setFavoritingMovieIds] = useState<Set<number>>(new Set());
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
 
   // Load Movies from TMDB
   const loadMovies = useCallback(async () => {
@@ -196,6 +200,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         setShowOnlyFavorites={setShowOnlyFavorites}
         favoritesCount={favorites.length}
         openAuthModal={() => { }}
+        openAdminModal={() => setIsAdminModalOpen(true)}
       />
 
       <main className="main-content">
@@ -330,7 +335,16 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         showToast={showToast}
         openAuthModal={() => { }}
       />
+
+      {/* Admin Moderation Modal */}
+      <AdminCommentsModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        moviesList={movies}
+        showToast={showToast}
+      />
     </div>
+
   );
 };
 

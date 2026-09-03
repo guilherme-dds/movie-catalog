@@ -31,7 +31,13 @@ export interface CommentItem {
   tmdbMovieId: number;
   texto: string;
   criadoEm?: string;
+  usuario?: {
+    id: string;
+    nome: string;
+    email: string;
+  };
 }
+
 
 export interface TMDBMovie {
   id: number;
