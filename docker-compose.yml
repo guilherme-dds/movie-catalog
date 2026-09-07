@@ -9,6 +9,7 @@ services:
     depends_on:
       - frontend
       - backend
+      - auth-service
     restart: unless-stopped
 
   auth-service:

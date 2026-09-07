@@ -7,6 +7,14 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: true,
     proxy: {
+      '/api/auth': {
+        target: process.env.VITE_AUTH_TARGET || 'http://auth-service:3334',
+        changeOrigin: true,
+      },
+      '/api/create': {
+        target: process.env.VITE_AUTH_TARGET || 'http://auth-service:3334',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.VITE_BACKEND_TARGET || 'http://backend:3333',
         changeOrigin: true,

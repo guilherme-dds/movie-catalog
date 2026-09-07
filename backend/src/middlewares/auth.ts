@@ -18,6 +18,22 @@ export async function AuthMiddleware(
     return res.status(401).json({ error: "Token invalid" });
   }
 
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (JWT_SECRET) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (typeof decoded !== "string" && typeof decoded.id === "string") {
+        req.userId = decoded.id;
+        if (decoded.role) {
+          req.userRole = decoded.role;
+        }
+        return next();
+      }
+    } catch {
+      // If local verification fails due to secret mismatch or error, proceed to try auth-service
+    }
+  }
+
   const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3334";
 
   try {
@@ -43,21 +59,6 @@ export async function AuthMiddleware(
     return res.status(401).json({ error: data.error || "Token invalid" });
   } catch (error) {
     console.error("Error verifying token with auth-service:", error);
-
-    const JWT_SECRET = process.env.JWT_SECRET;
-    if (JWT_SECRET) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        if (typeof decoded !== "string" && typeof decoded.id === "string") {
-          req.userId = decoded.id;
-          if (decoded.role) {
-            req.userRole = decoded.role;
-          }
-          return next();
-        }
-      } catch { }
-    }
-
     return res.status(401).json({ error: "Token invalid" });
   }
 }

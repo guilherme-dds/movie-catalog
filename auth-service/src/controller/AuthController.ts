@@ -1,10 +1,54 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 
 export class AuthController {
+  async create(req: Request, res: Response) {
+    try {
+      const { nome, email, password, role } = req.body || {};
+
+      if (!email || !password || !nome) {
+        return res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
+      }
+
+      const hash_password = await hash(password, 8);
+
+      const userExists = await prisma.usuario.findUnique({
+        where: {
+          email,
+        },
+      });
+
+      if (userExists) {
+        return res.status(400).json({ error: "User exists" });
+      }
+
+      const userRole = role === "admin" ? "admin" : "user";
+
+      const user = await prisma.usuario.create({
+        data: {
+          nome,
+          email,
+          senhaHash: hash_password,
+          role: userRole,
+        },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          role: true,
+          criadoEm: true,
+        },
+      });
+
+      return res.status(201).json({ user });
+    } catch (error: any) {
+      console.error("Error in auth-service create:", error);
+      return res.status(500).json({ error: error.message || "Internal server error" });
+    }
+  }
   async authenticate(req: Request, res: Response) {
     try {
       const { email, password } = req.body || {};
