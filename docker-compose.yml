@@ -1,4 +1,27 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: cinehanks-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  log-service:
+    build:
+      context: ./log-service
+      dockerfile: Dockerfile
+    container_name: cinehanks-log-service
+    expose:
+      - "3335"
+    ports:
+      - "3335:3335"
+    environment:
+      PORT: 3335
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
   nginx:
     build:
       context: ./nginx
@@ -10,6 +33,7 @@ services:
       - frontend
       - backend
       - auth-service
+      - log-service
     restart: unless-stopped
 
   auth-service:
@@ -35,6 +59,9 @@ services:
       BREVO_API_KEY: ${BREVO_API_KEY}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
       FRONTEND_URL: ${FRONTEND_URL}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
     restart: unless-stopped
 
   backend:
@@ -54,8 +81,10 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       AUTH_SERVICE_URL: http://auth-service:3334
+      REDIS_URL: redis://redis:6379
     depends_on:
       - auth-service
+      - redis
     restart: unless-stopped
 
   frontend:
@@ -73,3 +102,4 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+

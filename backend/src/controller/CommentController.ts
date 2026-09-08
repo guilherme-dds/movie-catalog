@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
+import { logEvent } from "../utils/logger.js";
 
 export class CommentController {
   async store(req: Request, res: Response) {
@@ -15,8 +16,11 @@ export class CommentController {
         },
       });
 
+      await logEvent({ userId, acao: "CREATE_COMMENT", req });
+
       return res.status(201).json({ newComment });
     } catch (error) {
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -35,11 +39,13 @@ export class CommentController {
 
       return res.status(200).json({ comments });
     } catch (error) {
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }
 
   async allCommentsAdmin(req: Request, res: Response) {
+    const { userId } = req;
     try {
       const comments = await prisma.comentario.findMany({
         include: {
@@ -58,6 +64,7 @@ export class CommentController {
 
       return res.status(200).json({ comments });
     } catch (error) {
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -79,6 +86,7 @@ export class CommentController {
       const isOwner = comment.usuarioId === userId;
 
       if (!isOwner && !isAdmin) {
+        await logEvent({ userId, acao: "PERMISSION_DENIED", req });
         return res.status(403).json({ error: "Você não tem permissão para deletar este comentário." });
       }
 
@@ -88,8 +96,11 @@ export class CommentController {
         },
       });
 
+      await logEvent({ userId, acao: "DELETE_COMMENT", req });
+
       return res.status(200).json({ message: "Comment successfully deleted" });
     } catch (error) {
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }

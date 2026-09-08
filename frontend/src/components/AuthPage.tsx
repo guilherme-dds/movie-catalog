@@ -70,15 +70,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ showToast }) => {
                 {isForgotPassword
                   ? "Recuperar Senha"
                   : isRegister
-                  ? "Criar sua Conta"
-                  : "Entrar no CineHanks"}
+                    ? "Criar sua Conta"
+                    : "Entrar no CineHanks"}
               </h2>
               <p className="auth-subtitle">
                 {isForgotPassword
                   ? "Informe seu e-mail para receber as instruções de redefinição."
                   : isRegister
-                  ? "Preencha seus dados para se cadastrar"
-                  : "Informe suas credenciais para continuar"}
+                    ? "Preencha seus dados para se cadastrar"
+                    : "Informe suas credenciais para continuar"}
               </p>
             </div>
 

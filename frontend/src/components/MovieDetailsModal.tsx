@@ -44,7 +44,7 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const fetchComments = useCallback(async () => {
-    if (!movie || !token) return;
+    if (!movie) return;
     setIsLoadingComments(true);
     try {
       const data = await getCommentsApi(token, movie.id);
@@ -57,12 +57,12 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   }, [movie, token]);
 
   useEffect(() => {
-    if (movie && isAuthenticated) {
+    if (movie) {
       fetchComments();
     } else {
       setComments([]);
     }
-  }, [movie, isAuthenticated, fetchComments]);
+  }, [movie, fetchComments]);
 
   if (!movie) return null;
 

@@ -3,6 +3,7 @@ import prisma from "../utils/prisma.js";
 import { compare, hash } from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
+import { logEvent } from "../utils/logger.js";
 
 export class AuthController {
   async create(req: Request, res: Response) {
@@ -46,6 +47,7 @@ export class AuthController {
       return res.status(201).json({ user });
     } catch (error: any) {
       console.error("Error in auth-service create:", error);
+      await logEvent({ acao: "ERROR", req });
       return res.status(500).json({ error: error.message || "Internal server error" });
     }
   }
@@ -75,6 +77,7 @@ export class AuthController {
 
       const JWT_SECRET = process.env.JWT_SECRET;
       if (!JWT_SECRET) {
+        await logEvent({ userId: user.id, acao: "ERROR", req });
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
@@ -96,6 +99,9 @@ export class AuthController {
 
       const { id, nome, role } = user;
 
+      // Log LOGIN event to Redis Stream via XADD
+      await logEvent({ userId: id, acao: "LOGIN", req });
+
       return res.json({
         user: { id, email, nome, role },
         token,
@@ -103,6 +109,40 @@ export class AuthController {
       });
     } catch (error: any) {
       console.error("Error in auth-service authenticate:", error);
+      await logEvent({ acao: "ERROR", req });
+      return res.status(500).json({ error: error.message || "Internal server error" });
+    }
+  }
+
+  async logout(req: Request, res: Response) {
+    try {
+      const { refreshToken, userId: bodyUserId } = req.body || {};
+      let userId: string | null = bodyUserId || null;
+
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const [type, token] = authHeader.split(" ");
+        if (type === "Bearer" && token && process.env.JWT_SECRET) {
+          try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+            if (decoded?.id) {
+              userId = decoded.id;
+            }
+          } catch {
+            // token could be expired
+          }
+        }
+      }
+
+      if (refreshToken) {
+        await prisma.refreshToken.deleteMany({ where: { token: refreshToken } }).catch(() => {});
+      }
+
+      await logEvent({ userId, acao: "LOGOUT", req });
+      return res.json({ message: "Logout realizado com sucesso" });
+    } catch (error: any) {
+      console.error("Error in auth-service logout:", error);
+      await logEvent({ acao: "ERROR", req });
       return res.status(500).json({ error: error.message || "Internal server error" });
     }
   }
@@ -131,6 +171,7 @@ export class AuthController {
 
       const JWT_SECRET = process.env.JWT_SECRET;
       if (!JWT_SECRET) {
+        await logEvent({ userId: storedToken.usuarioId, acao: "ERROR", req });
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
@@ -146,6 +187,7 @@ export class AuthController {
       });
     } catch (error: any) {
       console.error("Error in auth-service refresh:", error);
+      await logEvent({ acao: "ERROR", req });
       return res.status(500).json({ error: error.message || "Internal server error" });
     }
   }
@@ -183,3 +225,4 @@ export class AuthController {
     }
   }
 }
+

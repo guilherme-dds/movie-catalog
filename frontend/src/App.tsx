@@ -108,9 +108,14 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
   useEffect(() => {
     if (isAuthenticated) {
       loadMovies();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
       loadFavorites();
     }
-  }, [isAuthenticated, loadMovies, loadFavorites]);
+  }, [isAuthenticated, token, loadFavorites]);
 
   // Reset page when search or view filter changes
   useEffect(() => {
@@ -236,10 +241,14 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
             <div className="empty-icon-wrapper" style={{ background: "rgba(229, 9, 20, 0.1)", color: "#e50914" }}>
               <AlertTriangle size={32} />
             </div>
-            <h3>VITE_TMDB_API_KEY Não Configurada</h3>
+            <h3>Erro ao Carregar Catálogo</h3>
             <p style={{ maxWidth: "600px", margin: "0 auto 1.5rem auto", lineHeight: "1.6" }}>
               {apiError}
             </p>
+            <button className="btn btn-primary" onClick={loadMovies} style={{ marginTop: "1rem" }}>
+              <RefreshCw size={16} style={{ marginRight: "0.5rem" }} />
+              Tentar Novamente
+            </button>
           </div>
         ) : filteredMovies.length === 0 ? (
           <div className="catalog-empty">

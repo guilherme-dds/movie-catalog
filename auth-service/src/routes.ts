@@ -22,6 +22,10 @@ router.post("/auth/refresh", (req, res) => authController.refresh(req, res));
 router.post("/api/auth/refresh", (req, res) => authController.refresh(req, res));
 router.post("/refresh", (req, res) => authController.refresh(req, res));
 
+router.post("/auth/logout", (req, res) => authController.logout(req, res));
+router.post("/api/auth/logout", (req, res) => authController.logout(req, res));
+router.post("/logout", (req, res) => authController.logout(req, res));
+
 router.post("/auth/verify", (req, res) => authController.verify(req, res));
 router.post("/api/auth/verify", (req, res) => authController.verify(req, res));
 router.post("/verify", (req, res) => authController.verify(req, res));

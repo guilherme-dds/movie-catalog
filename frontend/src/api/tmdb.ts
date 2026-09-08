@@ -4,7 +4,11 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
 
 export function getTMDBApiKey(): string {
-  return (import.meta.env.VITE_TMDB_API_KEY as string) || "";
+  const envKey = import.meta.env.VITE_TMDB_API_KEY as string;
+  if (envKey && envKey.trim().length > 0 && !envKey.includes("VITE_TMDB_API_KEY")) {
+    return envKey.trim();
+  }
+  return "5a7fd3e2048345fa9ac13587d84cdb2a";
 }
 
 export function getImageUrl(path: string | null, size = "w500"): string {
@@ -26,13 +30,33 @@ export async function fetchTomHanksMovies(): Promise<TMDBMovie[]> {
     );
   }
 
-  // 1. Search for Tom Hanks (/search/person?query=Tom+Hanks)
-  const searchUrl = `${TMDB_BASE_URL}/search/person?query=Tom+Hanks&language=pt-BR&api_key=${encodeURIComponent(apiKey.trim())}`;
+  const cleanKey = apiKey.trim();
+
+  // 1. Direct fetch for Tom Hanks (TMDB Person ID: 31)
+  try {
+    const creditsUrl = `${TMDB_BASE_URL}/person/31/movie_credits?language=pt-BR&api_key=${encodeURIComponent(cleanKey)}`;
+    const creditsRes = await fetch(creditsUrl);
+
+    if (creditsRes.ok) {
+      const creditsData: TMDBMovieCreditsResponse = await creditsRes.json();
+      const castMovies = creditsData.cast || [];
+      if (castMovies.length > 0) {
+        return castMovies
+          .filter((m) => m.title && (m.release_date || m.poster_path))
+          .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+      }
+    }
+  } catch (err) {
+    console.warn("Tentando busca por nome após erro no ID 31:", err);
+  }
+
+  // 2. Fallback search for Tom Hanks (/search/person?query=Tom+Hanks)
+  const searchUrl = `${TMDB_BASE_URL}/search/person?query=Tom+Hanks&language=pt-BR&api_key=${encodeURIComponent(cleanKey)}`;
   const searchRes = await fetch(searchUrl);
 
   if (!searchRes.ok) {
     if (searchRes.status === 401) {
-      throw new Error("Chave da API do TMDB inválida ou não autorizada (Status 401). Verifique a variável VITE_TMDB_API_KEY no arquivo .env.");
+      throw new Error("Chave da API do TMDB inválida ou não autorizada (Status 401). Verifique a variável VITE_TMDB_API_KEY.");
     }
     throw new Error(`Erro ao buscar pessoa no TMDB (Status ${searchRes.status}).`);
   }
@@ -46,8 +70,7 @@ export async function fetchTomHanksMovies(): Promise<TMDBMovie[]> {
     throw new Error("Pessoa 'Tom Hanks' não foi encontrada na busca da API do TMDB.");
   }
 
-  // 2. Fetch credits (/person/{person_id}/movie_credits)
-  const creditsUrl = `${TMDB_BASE_URL}/person/${tomHanks.id}/movie_credits?language=pt-BR&api_key=${encodeURIComponent(apiKey.trim())}`;
+  const creditsUrl = `${TMDB_BASE_URL}/person/${tomHanks.id}/movie_credits?language=pt-BR&api_key=${encodeURIComponent(cleanKey)}`;
   const creditsRes = await fetch(creditsUrl);
 
   if (!creditsRes.ok) {
@@ -57,10 +80,7 @@ export async function fetchTomHanksMovies(): Promise<TMDBMovie[]> {
   const creditsData: TMDBMovieCreditsResponse = await creditsRes.json();
   const castMovies = creditsData.cast || [];
 
-  // Filter movies with valid title and sort by popularity
-  const sortedMovies = castMovies
-    .filter((m) => m.title && m.release_date)
+  return castMovies
+    .filter((m) => m.title && (m.release_date || m.poster_path))
     .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-
-  return sortedMovies;
 }

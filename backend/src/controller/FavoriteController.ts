@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
+import { logEvent } from "../utils/logger.js";
 
 export class FavoriteController {
   async store(req: Request, res: Response) {
@@ -25,6 +26,7 @@ export class FavoriteController {
       });
 
       if (existingFav) {
+        await logEvent({ userId, acao: "FAVORITE_MOVIE", req });
         return res.status(200).json({ newFavorite: existingFav });
       }
 
@@ -37,9 +39,12 @@ export class FavoriteController {
         },
       });
 
+      await logEvent({ userId, acao: "FAVORITE_MOVIE", req });
+
       return res.status(201).json({ newFavorite });
     } catch (error: any) {
       console.error("Erro ao salvar favorito:", error);
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error", message: error?.message });
     }
   }
@@ -64,6 +69,7 @@ export class FavoriteController {
       return res.status(200).json({ favoriteList });
     } catch (error) {
       console.error("Erro ao listar favoritos:", error);
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -100,6 +106,7 @@ export class FavoriteController {
       return res.status(200).json({ message: "Favorite successfully deleted" });
     } catch (error) {
       console.error("Erro ao remover favorito:", error);
+      await logEvent({ userId, acao: "ERROR", req });
       return res.status(500).json({ error: "Internal server error" });
     }
   }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User, AuthResponse } from "../types";
-import { loginApi, registerApi, refreshTokenApi } from "../api/backend";
+import { loginApi, registerApi, refreshTokenApi, logoutApi } from "../api/backend";
 
 interface AuthContextType {
   user: User | null;
@@ -23,13 +23,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(() => {
+    const currentToken = token || localStorage.getItem("auth_token");
+    const currentRefresh = refreshToken || localStorage.getItem("auth_refresh_token");
+    const storedUserStr = localStorage.getItem("auth_user");
+    let currentUserId = user?.id;
+    if (!currentUserId && storedUserStr) {
+      try {
+        currentUserId = JSON.parse(storedUserStr)?.id;
+      } catch { }
+    }
+
+    logoutApi(currentToken, currentRefresh, currentUserId);
+
     setToken(null);
     setRefreshToken(null);
     setUser(null);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_refresh_token");
     localStorage.removeItem("auth_user");
-  }, []);
+  }, [token, refreshToken, user]);
 
   const refreshSession = useCallback(async (): Promise<string | null> => {
     const storedRefreshToken = refreshToken || localStorage.getItem("auth_refresh_token");
@@ -72,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setIsLoading(false);
-  }, [logout]);
+  }, []);
 
   const login = async (email: string, pass: string) => {
     const data: AuthResponse = await loginApi(email, pass);

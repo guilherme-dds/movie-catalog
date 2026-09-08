@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { logEvent } from "../utils/logger.js";
 
 export async function AuthMiddleware(
   req: Request,
@@ -69,9 +70,11 @@ export async function AdminMiddleware(
   next: NextFunction,
 ) {
   if (req.userRole?.toLowerCase() !== "admin") {
+    await logEvent({ userId: req.userId, acao: "PERMISSION_DENIED", req });
     return res.status(403).json({ error: "Acesso restrito para administradores." });
   }
 
   return next();
 }
+
 
