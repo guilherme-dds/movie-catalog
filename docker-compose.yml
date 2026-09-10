@@ -18,8 +18,11 @@ services:
     environment:
       PORT: 3335
       REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3334
     depends_on:
       - redis
+      - auth-service
     restart: unless-stopped
 
   nginx:

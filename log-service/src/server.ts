@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import { Redis } from "ioredis";
+import { AuthMiddleware, AdminMiddleware } from "./middlewares/auth.js";
 
 const app = express();
 app.use(express.json());
@@ -89,7 +90,7 @@ app.get("/health", async (req, res) => {
   res.json({ status: "ok", redisStatus: redis.status, totalLogs: memoryLogs.length });
 });
 
-app.get("/logs", async (req, res) => {
+app.get("/logs", AuthMiddleware, AdminMiddleware, async (req, res) => {
   try {
     const rawStream = await redis.xrange(STREAM_KEY, "-", "+");
     const streamLogs: LogEntry[] = rawStream.map(([id, fields]) => parseStreamMessage(id, fields as string[]));
@@ -103,7 +104,7 @@ app.get("/logs", async (req, res) => {
   }
 });
 
-app.get("/api/logs", async (req, res) => {
+app.get("/api/logs", AuthMiddleware, AdminMiddleware, async (req, res) => {
   try {
     const rawStream = await redis.xrange(STREAM_KEY, "-", "+");
     const streamLogs: LogEntry[] = rawStream.map(([id, fields]) => parseStreamMessage(id, fields as string[]));
