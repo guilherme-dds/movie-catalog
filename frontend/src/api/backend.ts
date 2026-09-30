@@ -194,3 +194,26 @@ export async function getAllCommentsAdminApi(token: string | null): Promise<Comm
   return data.comments || [];
 }
 
+export async function getUserProfileApi(token?: string | null): Promise<User> {
+  const data = await fetchWithAuth<{ user: User }>(
+    "/user/profile",
+    {},
+    token,
+    "Erro ao buscar dados do perfil"
+  );
+  return data.user;
+}
+
+export async function updateUserProfileApi(token: string | null, bio: string, nome?: string): Promise<User> {
+  const data = await fetchWithAuth<{ user: User }>(
+    "/user/profile",
+    {
+      method: "PUT",
+      body: JSON.stringify({ bio, nome }),
+    },
+    token,
+    "Erro ao atualizar bio do perfil"
+  );
+  return data.user;
+}
+

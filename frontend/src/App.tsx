@@ -222,6 +222,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
             onToggleFavorite={handleToggleFavorite}
             onSelectMovie={(m) => setSelectedMovie(m)}
             onBackToCatalog={() => setCurrentView("catalog")}
+            showToast={showToast}
           />
         ) : (
           <>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { User as UserIcon, Heart, Edit3, Check, X, ArrowLeft, Film } from "lucide-react";
+import { User as UserIcon, Heart, Edit3, Check, X, ArrowLeft, Film, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import type { FavoriteItem, TMDBMovie } from "../types";
 import { MovieCard } from "./MovieCard";
+import { getUserProfileApi, updateUserProfileApi } from "../api/backend";
 
 interface ProfilePageProps {
   favorites: FavoriteItem[];
@@ -11,6 +12,7 @@ interface ProfilePageProps {
   onToggleFavorite: (movie: TMDBMovie) => Promise<void>;
   onSelectMovie: (movie: TMDBMovie) => void;
   onBackToCatalog: () => void;
+  showToast?: (type: "success" | "error" | "info", text: string) => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
@@ -20,34 +22,55 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onToggleFavorite,
   onSelectMovie,
   onBackToCatalog,
+  showToast,
 }) => {
-  const { user } = useAuth();
+  const { user, token, updateUser } = useAuth();
 
-  const bioKey = user ? `user_bio_${user.id}` : "user_bio_default";
-
-  const [bio, setBio] = useState<string>(() => {
-    return localStorage.getItem(bioKey) || "Apaixonado por cinema e grande fã dos filmes de Tom Hanks.";
-  });
+  const [bio, setBio] = useState<string>(user?.bio || "");
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [tempBio, setTempBio] = useState(bio);
+  const [tempBio, setTempBio] = useState(user?.bio || "");
+  const [isSavingBio, setIsSavingBio] = useState(false);
 
+  // Sync profile data from database on mount
   useEffect(() => {
-    if (user) {
-      const savedBio = localStorage.getItem(`user_bio_${user.id}`);
-      if (savedBio !== null) {
-        setBio(savedBio);
-        setTempBio(savedBio);
-      }
+    let isMounted = true;
+    if (token) {
+      getUserProfileApi(token)
+        .then((fetchedUser) => {
+          if (isMounted && fetchedUser) {
+            const bioText = fetchedUser.bio || "";
+            setBio(bioText);
+            setTempBio(bioText);
+            updateUser({ bio: bioText });
+          }
+        })
+        .catch((err) => {
+          console.error("Erro ao carregar perfil:", err);
+        });
     }
-  }, [user]);
+    return () => {
+      isMounted = false;
+    };
+  }, [token, updateUser]);
 
-  const handleSaveBio = () => {
+  const handleSaveBio = async () => {
+    if (!token) return;
     const trimmed = tempBio.trim();
-    setBio(trimmed);
-    if (user) {
-      localStorage.setItem(`user_bio_${user.id}`, trimmed);
+    setIsSavingBio(true);
+    try {
+      const updatedUser = await updateUserProfileApi(token, trimmed);
+      const newBio = updatedUser.bio || trimmed;
+      setBio(newBio);
+      setTempBio(newBio);
+      updateUser({ bio: newBio });
+      setIsEditingBio(false);
+      showToast?.("success", "Bio atualizada com sucesso no banco de dados!");
+    } catch (err: any) {
+      console.error("Erro ao salvar bio:", err);
+      showToast?.("error", err.message || "Erro ao salvar bio no banco de dados.");
+    } finally {
+      setIsSavingBio(false);
     }
-    setIsEditingBio(false);
   };
 
   const handleCancelBio = () => {
@@ -55,7 +78,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setIsEditingBio(false);
   };
 
-  // Map user favorites to full TMDBMovie objects (or fallback objects if tmdb data is loading/missing)
   const favoriteMoviesList: TMDBMovie[] = favorites.map((fav) => {
     const fullMovie = movies.find((m) => m.id === fav.tmdbMovieId);
     if (fullMovie) return fullMovie;
@@ -102,17 +124,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   value={tempBio}
                   onChange={(e) => setTempBio(e.target.value)}
                   placeholder="Escreva uma bio curta..."
-                  maxLength={160}
+                  maxLength={250}
                   rows={2}
+                  disabled={isSavingBio}
                 />
                 <div className="bio-edit-actions">
-                  <span className="bio-char-count">{tempBio.length}/160</span>
+                  <span className="bio-char-count">{tempBio.length}/250</span>
                   <div className="bio-btn-group">
-                    <button className="bio-btn cancel" onClick={handleCancelBio} title="Cancelar">
+                    <button
+                      className="bio-btn cancel"
+                      onClick={handleCancelBio}
+                      title="Cancelar"
+                      disabled={isSavingBio}
+                    >
                       <X size={14} /> Cancelar
                     </button>
-                    <button className="bio-btn save" onClick={handleSaveBio} title="Salvar">
-                      <Check size={14} /> Salvar
+                    <button
+                      className="bio-btn save"
+                      onClick={handleSaveBio}
+                      title="Salvar no banco de dados"
+                      disabled={isSavingBio}
+                    >
+                      {isSavingBio ? <Loader2 size={14} className="spinning-icon" /> : <Check size={14} />} Salvar
                     </button>
                   </div>
                 </div>
@@ -120,7 +153,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             ) : (
               <div className="bio-display-wrapper">
                 <p className="profile-bio-text">
-                  {bio ? bio : <span className="bio-placeholder">Nenhuma bio informada.</span>}
+                  {bio ? bio : <span className="bio-placeholder">Nenhuma bio cadastrada. Clique ao lado para adicionar.</span>}
                 </p>
                 <button
                   className="bio-edit-trigger"

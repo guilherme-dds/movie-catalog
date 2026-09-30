@@ -40,6 +40,7 @@ export class AuthController {
           nome: true,
           email: true,
           role: true,
+          bio: true,
           criadoEm: true,
         },
       });
@@ -97,13 +98,13 @@ export class AuthController {
         },
       });
 
-      const { id, nome, role } = user;
+      const { id, nome, role, bio } = user;
 
       // Log LOGIN event to Redis Stream via XADD
       await logEvent({ userId: id, acao: "LOGIN", req });
 
       return res.json({
-        user: { id, email, nome, role },
+        user: { id, email, nome, role, bio: bio || "" },
         token,
         refreshToken: refreshTokenValue,
       });

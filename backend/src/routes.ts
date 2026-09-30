@@ -14,6 +14,12 @@ export const router = Router();
 router.get("/users", AuthMiddleware, usercontroller.index);
 router.get("/api/users", AuthMiddleware, usercontroller.index);
 
+router.get("/user/profile", AuthMiddleware, (req, res) => usercontroller.getProfile(req, res));
+router.get("/api/user/profile", AuthMiddleware, (req, res) => usercontroller.getProfile(req, res));
+
+router.put("/user/profile", AuthMiddleware, (req, res) => usercontroller.updateProfile(req, res));
+router.put("/api/user/profile", AuthMiddleware, (req, res) => usercontroller.updateProfile(req, res));
+
 
 
 

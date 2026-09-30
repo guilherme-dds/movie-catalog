@@ -3,6 +3,7 @@ export interface User {
   nome?: string;
   email: string;
   role?: "admin" | "user" | string;
+  bio?: string;
 }
 
 export interface AuthResponse {

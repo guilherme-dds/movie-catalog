@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (nome: string, email: string, pass: string) => Promise<void>;
   refreshSession: () => Promise<string | null>;
   logout: () => void;
+  updateUser: (updatedFields: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const updateUser = useCallback((updatedFields: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const newUser = { ...prev, ...updatedFields };
+      localStorage.setItem("auth_user", JSON.stringify(newUser));
+      return newUser;
+    });
+  }, []);
 
   const logout = useCallback(() => {
     const currentToken = token || localStorage.getItem("auth_token");
@@ -117,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         refreshSession,
         logout,
+        updateUser,
       }}
     >
       {children}
