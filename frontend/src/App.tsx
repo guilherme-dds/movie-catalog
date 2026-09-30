@@ -11,6 +11,7 @@ import { AdminCommentsModal } from "./components/AdminCommentsModal";
 import { AuthPage } from "./components/AuthPage";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { Toast, type ToastMessage } from "./components/Toast";
+import { ProfilePage } from "./components/ProfilePage";
 
 import { Film, Clapperboard, Heart, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -51,6 +52,7 @@ interface MainCatalogProps {
 const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
   const { token, isAuthenticated, refreshSession } = useAuth();
 
+  const [currentView, setCurrentView] = useState<"catalog" | "profile">("catalog");
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoadingMovies, setIsLoadingMovies] = useState(true);
@@ -206,122 +208,138 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         favoritesCount={favorites.length}
         openAuthModal={() => { }}
         openAdminModal={() => setIsAdminModalOpen(true)}
+        onProfileClick={() => setCurrentView("profile")}
+        onBrandClick={() => setCurrentView("catalog")}
+        currentView={currentView}
       />
 
       <main className="main-content">
-        {/* Section Header Controls */}
-        <div className="section-header-row">
-          <h2 className="section-title">
-            {showOnlyFavorites ? (
-              <>
-                <Heart className="fill-heart" size={24} style={{ color: "#e50914" }} />
-                <span>Meus Filmes Favoritos</span>
-              </>
-            ) : (
-              <>
-                <Clapperboard size={24} style={{ color: "#f5c518" }} />
-                <span>Catálogo de Filmes</span>
-              </>
-            )}
-          </h2>
-
-          <span className="results-count">
-            Exibindo <strong>{filteredMovies.length}</strong> {filteredMovies.length === 1 ? "filme" : "filmes"}
-          </span>
-        </div>
-
-        {/* Catalog Grid State */}
-        {isLoadingMovies ? (
-          <div className="catalog-loading">
-            <RefreshCw className="spinning-icon" size={32} />
-            <span>Carregando catálogo de filmes do Tom Hanks via TMDB API...</span>
-          </div>
-        ) : apiError ? (
-          <div className="catalog-empty">
-            <div className="empty-icon-wrapper" style={{ background: "rgba(229, 9, 20, 0.1)", color: "#e50914" }}>
-              <AlertTriangle size={32} />
-            </div>
-            <h3>Erro ao Carregar Catálogo</h3>
-            <p style={{ maxWidth: "600px", margin: "0 auto 1.5rem auto", lineHeight: "1.6" }}>
-              {apiError}
-            </p>
-            <button className="btn btn-primary" onClick={loadMovies} style={{ marginTop: "1rem" }}>
-              <RefreshCw size={16} style={{ marginRight: "0.5rem" }} />
-              Tentar Novamente
-            </button>
-          </div>
-        ) : filteredMovies.length === 0 ? (
-          <div className="catalog-empty">
-            <div className="empty-icon-wrapper">
-              <Film size={32} />
-            </div>
-            <h3>Nenhum filme encontrado</h3>
-            <p>
-              {showOnlyFavorites
-                ? "Você ainda não adicionou nenhum filme aos favoritos."
-                : `Nenhum resultado corresponde à busca por "${searchTerm}".`}
-            </p>
-          </div>
+        {currentView === "profile" ? (
+          <ProfilePage
+            favorites={favorites}
+            movies={movies}
+            favoritingMovieIds={favoritingMovieIds}
+            onToggleFavorite={handleToggleFavorite}
+            onSelectMovie={(m) => setSelectedMovie(m)}
+            onBackToCatalog={() => setCurrentView("catalog")}
+          />
         ) : (
           <>
-            <div className="movie-grid">
-              {paginatedMovies.map((movie) => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  isFavorite={favoriteMovieIds.has(movie.id)}
-                  isFavoriting={favoritingMovieIds.has(movie.id)}
-                  favoriteItem={favorites.find((f) => f.tmdbMovieId === movie.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                  onSelectMovie={(m) => setSelectedMovie(m)}
-                />
-              ))}
+            {/* Section Header Controls */}
+            <div className="section-header-row">
+              <h2 className="section-title">
+                {showOnlyFavorites ? (
+                  <>
+                    <Heart className="fill-heart" size={24} style={{ color: "#e50914" }} />
+                    <span>Meus Filmes Favoritos</span>
+                  </>
+                ) : (
+                  <>
+                    <Clapperboard size={24} style={{ color: "#f5c518" }} />
+                    <span>Catálogo de Filmes</span>
+                  </>
+                )}
+              </h2>
+
+              <span className="results-count">
+                Exibindo <strong>{filteredMovies.length}</strong> {filteredMovies.length === 1 ? "filme" : "filmes"}
+              </span>
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="pagination-container">
-                <button
-                  className="pagination-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  title="Página Anterior"
-                >
-                  <ChevronLeft size={18} />
-                  <span>Anterior</span>
-                </button>
-
-                <div className="pagination-numbers">
-                  {getPageNumbers(currentPage, totalPages).map((item, index) => {
-                    if (typeof item === "string") {
-                      return (
-                        <span key={`ellipsis-${index}`} className="pagination-ellipsis">
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <button
-                        key={item}
-                        className={`pagination-number ${item === currentPage ? "active" : ""}`}
-                        onClick={() => setCurrentPage(item)}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
+            {/* Catalog Grid State */}
+            {isLoadingMovies ? (
+              <div className="catalog-loading">
+                <RefreshCw className="spinning-icon" size={32} />
+                <span>Carregando catálogo de filmes do Tom Hanks via TMDB API...</span>
+              </div>
+            ) : apiError ? (
+              <div className="catalog-empty">
+                <div className="empty-icon-wrapper" style={{ background: "rgba(229, 9, 20, 0.1)", color: "#e50914" }}>
+                  <AlertTriangle size={32} />
                 </div>
-
-                <button
-                  className="pagination-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  title="Próxima Página"
-                >
-                  <span>Próximo</span>
-                  <ChevronRight size={18} />
+                <h3>Erro ao Carregar Catálogo</h3>
+                <p style={{ maxWidth: "600px", margin: "0 auto 1.5rem auto", lineHeight: "1.6" }}>
+                  {apiError}
+                </p>
+                <button className="btn btn-primary" onClick={loadMovies} style={{ marginTop: "1rem" }}>
+                  <RefreshCw size={16} style={{ marginRight: "0.5rem" }} />
+                  Tentar Novamente
                 </button>
               </div>
+            ) : filteredMovies.length === 0 ? (
+              <div className="catalog-empty">
+                <div className="empty-icon-wrapper">
+                  <Film size={32} />
+                </div>
+                <h3>Nenhum filme encontrado</h3>
+                <p>
+                  {showOnlyFavorites
+                    ? "Você ainda não adicionou nenhum filme aos favoritos."
+                    : `Nenhum resultado corresponde à busca por "${searchTerm}".`}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="movie-grid">
+                  {paginatedMovies.map((movie) => (
+                    <MovieCard
+                      key={movie.id}
+                      movie={movie}
+                      isFavorite={favoriteMovieIds.has(movie.id)}
+                      isFavoriting={favoritingMovieIds.has(movie.id)}
+                      favoriteItem={favorites.find((f) => f.tmdbMovieId === movie.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onSelectMovie={(m) => setSelectedMovie(m)}
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="pagination-container">
+                    <button
+                      className="pagination-btn"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      title="Página Anterior"
+                    >
+                      <ChevronLeft size={18} />
+                      <span>Anterior</span>
+                    </button>
+
+                    <div className="pagination-numbers">
+                      {getPageNumbers(currentPage, totalPages).map((item, index) => {
+                        if (typeof item === "string") {
+                          return (
+                            <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                              ...
+                            </span>
+                          );
+                        }
+                        return (
+                          <button
+                            key={item}
+                            className={`pagination-number ${item === currentPage ? "active" : ""}`}
+                            onClick={() => setCurrentPage(item)}
+                          >
+                            {item}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      className="pagination-btn"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      title="Próxima Página"
+                    >
+                      <span>Próximo</span>
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

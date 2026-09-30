@@ -10,6 +10,9 @@ interface NavbarProps {
   favoritesCount: number;
   openAuthModal: () => void;
   openAdminModal?: () => void;
+  onProfileClick?: () => void;
+  onBrandClick?: () => void;
+  currentView?: "catalog" | "profile";
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,15 +23,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   favoritesCount,
   openAuthModal,
   openAdminModal,
+  onProfileClick,
+  onBrandClick,
+  currentView = "catalog",
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  const handleBrandClick = () => {
+    setShowOnlyFavorites(false);
+    if (onBrandClick) {
+      onBrandClick();
+    }
+  };
 
   return (
     <header className="navbar-header">
       <div className="navbar-container">
         {/* Brand */}
-        <div className="navbar-brand" onClick={() => setShowOnlyFavorites(false)}>
+        <div className="navbar-brand" onClick={handleBrandClick}>
           <div className="logo-icon-wrapper">
             <Film className="logo-icon" size={26} />
             <Sparkles className="logo-sparkle" size={14} />
@@ -60,11 +73,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="navbar-actions">
           {/* Favorites Filter Toggle */}
           <button
-            className={`nav-btn ${showOnlyFavorites ? "active" : ""}`}
-            onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+            className={`nav-btn ${showOnlyFavorites && currentView === "catalog" ? "active" : ""}`}
+            onClick={() => {
+              if (currentView === "profile" && onBrandClick) {
+                onBrandClick();
+              }
+              setShowOnlyFavorites(!showOnlyFavorites);
+            }}
             title="Filtrar Favoritos"
           >
-            <Heart size={18} className={showOnlyFavorites ? "fill-heart" : ""} />
+            <Heart size={18} className={showOnlyFavorites && currentView === "catalog" ? "fill-heart" : ""} />
             <span className="btn-label">Favoritos</span>
             {favoritesCount > 0 && <span className="favorites-badge">{favoritesCount}</span>}
           </button>
@@ -84,8 +102,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* User Auth Section */}
           {isAuthenticated ? (
-            <div className="user-menu">
-              <div className="user-badge" title={user?.email}>
+            <div className={`user-menu ${currentView === "profile" ? "profile-active" : ""}`}>
+              <div
+                className="user-badge clickable"
+                onClick={onProfileClick}
+                title="Ver Meu Perfil"
+              >
                 <div className="avatar-circle">
                   <UserIcon size={16} />
                 </div>
