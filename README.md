@@ -1,188 +1,236 @@
-# CineHanks - Catálogo de Filmes
+# CineHanks - Catálogo de Filmes & Microserviços
 
-Aplicação web fullstack para exploração, avaliação e gerenciamento de filmes do ator Tom Hanks, utilizando dados integrados da API do TMDB (The Movie Database), autenticação JWT e persistência em banco de dados relacional. O projeto é utilizado na disciplina de Introdução à Computação em Nuvem, com deploy e gerenciamento dos serviços através do Portainer.
+Aplicação web fullstack e orientada a microserviços para exploração, avaliação e gerenciamento de filmes do ator Tom Hanks. O sistema integra a API do TMDB (The Movie Database), autenticação distribuída com JWT e Refresh Tokens, armazenamento de imagens de perfil via **MinIO (Object Storage S3)**, mensageria e auditoria em tempo real com **Redis Streams**, e banco de dados relacional MySQL. 
 
----
-
-## Funcionalidades
-
-- **Autenticação de Usuários**: Cadastro de conta e autenticação via Login com geração de tokens JWT seguros.
-- **Catálogo de Filmes**: Integração com a API do TMDB para exibição dos filmes do Tom Hanks, incluindo poster, sinopse, nota e ano de lançamento.
-- **Busca e Paginação**: Filtro em tempo real por título, título original, personagem ou ano, com paginação interativa.
-- **Favoritos Personalizados**: Adição e remoção de filmes da lista de favoritos do usuário autenticado.
-- **Sistema de Comentários**: Inclusão e exclusão de comentários em cada filme com sincronização no banco de dados.
-- **Moderação por Administrador**: Painel exclusivo para usuários com role `ADMIN` realizarem busca, visualização global e remoção de qualquer comentário do sistema.
+O projeto é utilizado na disciplina de Introdução à Computação em Nuvem, com orquestração de contêineres e deploy gerenciado via **Portainer**.
 
 ---
 
-## Permissões por Tipo de Usuário (Roles)
+## 🚀 Funcionalidades
 
-O sistema conta com controle de acesso baseado em funções (*Role-Based Access Control - RBAC*), diferenciando as permissões entre usuários comuns e administradores:
+- **Autenticação & Sessão**: Cadastro de conta, login com geração de tokens JWT e Refresh Tokens persistentes no MySQL, encerramento de sessão e recuperação de senha.
+- **Foto de Perfil com MinIO (S3)**: Upload de foto de perfil pelo usuário com validação client-side e server-side de tipo de arquivo (`JPG`, `PNG`, `WEBP`, `GIF`) e tamanho máximo (até 5MB). O arquivo é armazenado no bucket `avatars` no MinIO e a referência da URL é salva no banco de dados.
+- **Página de Perfil do Usuário**: Painel para visualização da conta, upload/alteração/remoção da foto de perfil, edição de bio curta (até 250 caracteres) e exibição dos filmes favoritos.
+- **Catálogo de Filmes**: Integração com a API do TMDB para exibição completa da filmografia de Tom Hanks (pôster, sinopse, avaliação e ano).
+- **Busca & Paginação**: Filtro em tempo real por título, título original, personagem ou ano, com paginação interativa.
+- **Favoritos Personalizados**: Adição e remoção de filmes da lista de favoritos com sincronização no MySQL.
+- **Sistema de Comentários**: Inclusão e exclusão de comentários em cada filme.
+- **Moderação por Administrador (`ADMIN`)**: Painel exclusivo para administradores realizarem busca, visualização global de todos os comentários do sistema e exclusão irrestrita.
+- **Auditoria de Eventos com Redis**: Microserviço de logs que consome eventos em tempo real (`XADD` / `XREAD`) via Redis Streams para auditoria de logins, logouts e exceções.
+- **Documentação de API OpenAPI/Swagger**: Interface Swagger interativa para o microserviço de autenticação.
+
+---
+
+## 🔒 Permissões por Tipo de Usuário (Roles)
 
 ### Usuário Comum (`USER`)
-- **Navegação e Busca**: Explorar o catálogo de filmes do Tom Hanks, utilizar filtros por título, personagem ou ano e visualizar detalhes completos dos filmes.
-- **Favoritos**: Adicionar e remover filmes da sua lista pessoal de favoritos.
-- **Comentários**: Publicar comentários nos filmes e excluir **apenas os seus próprios** comentários.
-- **Gerenciamento de Conta**: Criar conta, realizar login, encerrar sessão e redefinir senha.
+- **Navegação & Busca**: Explorar o catálogo, utilizar filtros por título, personagem ou ano e visualizar detalhes.
+- **Foto de Perfil**: Realizar upload, alterar ou remover sua imagem de perfil armazenada no MinIO.
+- **Editar Bio**: Adicionar ou modificar sua bio curta no perfil.
+- **Favoritos**: Gerenciar sua lista pessoal de favoritos.
+- **Comentários**: Publicar comentários e excluir **apenas os seus próprios** comentários.
+- **Sessão**: Criar conta, realizar login, renovar sessão, encerrar sessão e redefinir senha.
 
 ### Administrador (`ADMIN`)
-Possui **todas as permissões do Usuário Comum (`USER`)**, acrescido das seguintes funcionalidades de gestão e moderação:
-- **Painel de Moderação na Navbar**: Acesso ao botão exclusivo **Moderação (ADMIN)** na barra de navegação.
-- **Visualização Global de Comentários**: Acesso à lista consolidada de todos os comentários feitos no sistema por qualquer usuário, incluindo informações do autor (nome e e-mail).
-- **Exclusão Irrestrita de Comentários**: Capacidade de moderar e remover qualquer comentário do banco de dados.
-- **Segurança e Proteção de API**: Acesso exclusivo a endpoints restritos (`/api/comment/admin/all`) validados por middleware de autorização backend.
-
+Possui **todas as permissões do Usuário Comum (`USER`)**, com os seguintes privilégios adicionais:
+- **Painel de Moderação**: Acesso ao menu exclusivo **Moderação (ADMIN)** na barra de navegação.
+- **Visualização Global de Comentários**: Acesso à lista de todos os comentários publicados na plataforma, com identificação do autor.
+- **Exclusão Irrestrita de Comentários**: Capacidade de moderar e apagar qualquer comentário do banco de dados.
+- **Auditoria de Logs**: Consulta aos registros de eventos do sistema via microserviço de logs.
 
 ---
 
-## Tecnologias Utilizadas
+## 🛠️ Tecnologias Utilizadas
 
 ### Frontend
-- **React**
+- **React 19**
 - **TypeScript**
-- **Vite**
+- **Vite 6/8**
+- **Lucide React** (Ícones)
 
-### Backend
-- **Node.js**
+### Backend & Microserviços
+- **Node.js 22 (Alpine)**
 - **Express 5**
 - **TypeScript**
 - **Prisma ORM 7**
-- **JWT (JSON Web Token)**
-- **Bcryptjs**
+- **MinIO JavaScript SDK** (Object Storage S3)
+- **Multer** (Gerenciamento de uploads multipart/form-data)
+- **JWT (JSON Web Token)** & **Bcryptjs**
+- **ioredis** (Redis Streams Client)
+- **Swagger UI Express** (Documentação OpenAPI)
 
 ### Banco de Dados & Infraestrutura
-- **MySQL**
-- **Nginx** (Proxy Reverso)
-- **Docker & Docker Compose**
+- **MySQL / MariaDB** (Banco Relacional)
+- **MinIO Object Storage** (Armazenamento S3 de Avatares)
+- **Redis 7** (Mensageria e Log Streams)
+- **Nginx** (Proxy Reverso & Roteamento Unificado)
+- **Docker & Docker Compose** (Orquestração de Contêineres)
+- **Portainer** (Deploy e Gestão em Nuvem)
 
 ---
 
-## Estrutura do Projeto
+## 📐 Arquitetura do Sistema
+
+```text
+                               ┌─────────────────────────┐
+                               │   Navegador / Cliente   │
+                               └────────────┬────────────┘
+                                            │ :8209
+                               ┌────────────▼────────────┐
+                               │     Nginx (Proxy)       │
+                               └───┬────────┬────────┬───┘
+                                   │        │        │
+           ┌───────────────────────┘        │        └───────────────────────┐
+           │ /                              │ /api/                          │ /api/auth
+┌──────────▼──────────┐          ┌──────────▼──────────┐          ┌──────────▼──────────┐
+│   frontend (Vite)   │          │   backend (Node)    │          │ auth-service (Node) │
+└─────────────────────┘          └─────┬───────────┬───┘          └──────────┬──────────┘
+                                       │           │                         │
+                               ┌───────▼──────┐  ┌─▼─────────────┐           │
+                               │ MinIO (S3)   │  │ MySQL Database│───────────┘
+                               └──────────────┘  └───────────────┘
+                                                          │ (Log Events)
+                                                ┌─────────▼─────────┐
+                                                │ Redis Streams     │
+                                                └─────────┬─────────┘
+                                                          │
+                                                ┌─────────▼─────────┐
+                                                │ log-service (Node)│
+                                                └───────────────────┘
+```
+
+---
+
+## 📁 Estrutura do Projeto
 
 ```text
 movie-catalog/
-├── backend/
+├── auth-service/              # Microserviço de Autenticação & Tokens
 │   ├── prisma/
-│   │   └── schema.prisma      # Modelagem de dados (Usuario, Favorito, Comentario)
+│   │   └── schema.prisma      # Modelagem Usuario, RefreshToken, ResetToken
 │   ├── src/
-│   │   ├── controller/        # Controladores das rotas de Auth, Usuário, Favorito e Comentário
-│   │   ├── middlewares/       # Middleware de validação do token JWT
-│   │   ├── utils/             # Utilitários de conexão Prisma
-│   │   ├── routes.ts          # Definição dos endpoints Express
-│   │   └── server.ts          # Inicialização do servidor HTTP
+│   │   ├── controller/        # AuthController & ResetController
+│   │   ├── swagger.ts         # Especificação OpenAPI / Swagger
+│   │   └── server.ts
 │   └── Dockerfile
-├── frontend/
+├── backend/                   # Microserviço Principal (Catálogo, Perfil, MinIO)
+│   ├── prisma/
+│   │   └── schema.prisma      # Modelagem Usuario, Favorito, Comentario
 │   ├── src/
-│   │   ├── api/               # Chamadas para a API TMDB e API Backend
-│   │   ├── components/        # Componentes de UI (MovieCard, Modal, Navbar, Auth, Toast)
-│   │   ├── context/           # Contexto de Autenticação (AuthContext)
-│   │   └── App.tsx            # Componente raiz da aplicação
+│   │   ├── controller/        # UserController, FavoriteController, CommentController
+│   │   ├── middlewares/       # AuthMiddleware & AdminMiddleware
+│   │   ├── utils/             # minio.ts (S3 Upload/Stream) & prisma.ts
+│   │   └── server.ts
+│   └── Dockerfile
+├── frontend/                  # Aplicação React
+│   ├── src/
+│   │   ├── api/               # tmdb.ts & backend.ts (Profile, Avatar, Auth, Comments)
+│   │   ├── components/        # ProfilePage, Navbar, MovieCard, AuthPage, Modais
+│   │   ├── context/           # AuthContext (Gestão de estado da sessão)
+│   │   └── index.css          # Estilos globais e componentes da UI
+│   └── Dockerfile
+├── log-service/               # Microserviço de Logs & Auditoria em Tempo Real
+│   ├── src/
+│   │   └── server.ts          # Leitor de Redis Streams (XREAD)
 │   └── Dockerfile
 ├── nginx/
-│   ├── nginx.conf             # Configuração de proxy reverso (/api -> backend, / -> frontend)
+│   ├── nginx.conf             # Proxy reverso unificado (/api, /api/auth, /api/logs, /)
 │   └── Dockerfile
-├── docker-compose.yml         # Orquestração dos contêineres
+├── docker-compose.yml         # Orquestração de todos os contêineres
+├── .env                       # Variáveis de ambiente
 └── README.md
 ```
 
 ---
 
-## Configuração de Variáveis de Ambiente
+## ⚙️ Configuração de Variáveis de Ambiente
 
-Antes de executar a aplicação, crie os arquivos de ambiente necessários com base nos exemplos abaixo:
-
-### Backend (`backend/.env`)
+Crie o arquivo `.env` no diretório raiz conforme o modelo abaixo:
 
 ```env
-PORT=3333
-DATABASE_HOST=localhost
-DATABASE_USER=root
-DATABASE_PASSWORD=senha_banco
-DATABASE_NAME=movie_catalog
-DATABASE_PORT=3306
-DATABASE_URL="mysql://root:senha_banco@localhost:3306/movie_catalog"
-JWT_SECRET=seu_jwt_secret_aqui
-```
+# Banco de Dados MySQL
+DATABASE_URL="mysql://usuario:senha@host:3306/nome_banco"
+DATABASE_HOST="host"
+DATABASE_USER="usuario"
+DATABASE_PASSWORD="senha"
+DATABASE_NAME="nome_banco"
+DATABASE_PORT="3306"
 
-### Frontend (`frontend/.env`)
+# Segredo de Autenticação
+JWT_SECRET="seu_jwt_secret_super_seguro"
 
-```env
-VITE_API_BASE_URL=http://localhost:8209/api
-VITE_TMDB_API_KEY=sua_chave_api_tmdb_aqui
+# Chave API TMDB
+VITE_TMDB_API_KEY=sua_chave_api_tmdb
+VITE_API_BASE_URL=/api
+
+# Configurações MinIO (Object Storage S3)
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin123
+MINIO_BUCKET_NAME=avatars
+
+# Redis Streams & Serviços
+REDIS_URL=redis://redis:6379
+AUTH_SERVICE_URL=http://auth-service:3334
+FRONTEND_URL=http://localhost:8209
 ```
 
 ---
 
-## Como Executar o Projeto
+## 🚀 Como Executar o Projeto
 
 ### Opção 1: Utilizando Docker Compose (Recomendado)
 
-1. Certifique-se de ter o **Docker** e o **Docker Compose** instalados em sua máquina.
-2. Certifique-se de configurar a variável `VITE_TMDB_API_KEY` no arquivo `frontend/.env` ou nas variáveis de ambiente.
-3. No diretório raiz do projeto, execute o comando de build e inicialização dos serviços:
+1. Certifique-se de ter o **Docker** e o **Docker Compose** instalados.
+2. Certifique-se de preencher os valores das variáveis no arquivo `.env`.
+3. No diretório raiz do projeto, suba todos os microserviços:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-4. A aplicação estará acessível através do endereço do proxy Nginx:
-   - **Frontend & API Unificados**: `http://localhost:8209`
+4. A aplicação estará acessível unificada na porta configurada:
+   - **Aplicação Web & API**: `http://localhost:8209`
+   - **Documentação Swagger API Auth**: `http://localhost:8209/apidocs`
 
 ---
 
-### Opção 2: Execução Manual / Desenvolvimento Local
+## 🌐 Endpoints da API
 
-#### 1. Banco de Dados
-Inicialize uma instância do MySQL ou MariaDB e crie o banco de dados especificado na variável `DATABASE_NAME`.
-
-#### 2. Backend
-
-Navegue até a pasta do backend, instale as dependências e aplique as migrações/schema do Prisma:
-
-```bash
-cd backend
-npm install
-npx prisma db push
-npm run dev
-```
-
-O servidor backend iniciará na porta configurada (`http://localhost:3333`).
-
-#### 3. Frontend
-
-Em outro terminal, navegue até a pasta do frontend, instale as dependências e inicie o servidor de desenvolvimento Vite:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-A aplicação frontend iniciará por padrão em `http://localhost:5173`.
-
----
-
-## Endpoints da API Backend
-
-### Autenticação e Usuários
+### Autenticação & Sessão (`auth-service`)
 - `POST /api/create`: Cadastra um novo usuário.
-- `POST /api/auth`: Realiza login e retorna o token JWT.
-- `GET /api/users`: Lista os usuários cadastrados (Requer autenticação JWT).
+- `POST /api/auth`: Realiza login, gera JWT e Refresh Token.
+- `POST /api/auth/refresh`: Renova o token de acesso JWT expirado.
+- `POST /api/auth/logout`: Invalida o token e encerra a sessão.
+- `POST /api/auth/reset`: Solicita redefinição de senha por e-mail.
+- `POST /api/auth/reset/confirm`: Confirma e altera a senha.
+- `GET /apidocs`: Documentação interativa Swagger UI.
 
-### Favoritos
-- `GET /api/favorite`: Lista os filmes favoritos do usuário logado (Requer JWT).
-- `POST /api/favorite`: Adiciona um filme aos favoritos do usuário (Requer JWT).
-- `DELETE /api/favorite/:id`: Remove um filme dos favoritos pelo ID (Requer JWT).
+### Perfil do Usuário & MinIO Avatar (`backend`)
+- `GET /api/user/profile`: Retorna o perfil completo do usuário autenticado.
+- `PUT /api/user/profile`: Atualiza nome e bio do usuário.
+- `POST /api/user/avatar`: Faz o upload da foto de perfil para o MinIO e salva a referência no MySQL.
+- `GET /api/user/avatar/:filename`: Serve a imagem de perfil armazenada no MinIO.
+- `DELETE /api/user/avatar`: Remove a foto de perfil do MinIO e limpa a referência no banco.
 
-### Comentários
-- `GET /api/comment/:movieId`: Lista os comentários de um filme específico (Requer JWT).
-- `GET /api/comment/admin/all`: Lista todos os comentários do sistema com dados dos autores (Requer JWT e role `ADMIN`).
-- `POST /api/comment`: Adiciona um comentário em um filme (Requer JWT).
-- `DELETE /api/comment/delete/:id`: Exclui um comentário pelo ID (Requer JWT; autor do comentário ou `ADMIN`).
+### Favoritos (`backend`)
+- `GET /api/favorite`: Lista os filmes favoritos do usuário logado.
+- `POST /api/favorite`: Adiciona um filme aos favoritos.
+- `DELETE /api/favorite/:id`: Remove um filme dos favoritos pelo ID.
 
+### Comentários (`backend`)
+- `GET /api/comment/:movieId`: Lista os comentários de um filme.
+- `GET /api/comment/admin/all`: Lista todos os comentários do sistema com dados dos autores (`ADMIN`).
+- `POST /api/comment`: Publica um novo comentário.
+- `DELETE /api/comment/delete/:id`: Remove um comentário (Autor ou `ADMIN`).
+
+### Auditoria de Logs (`log-service`)
+- `GET /api/logs`: Consulta o histórico de eventos e logs de auditoria via Redis Stream (`ADMIN`).
 
 ---
 
-## Autor
+## 👨‍💻 Autor
 
 Desenvolvido por **Guilherme Dias** como parte da disciplina de Introdução à Computação em Nuvem, sob orientação do professor [@siriani](https://github.com/siriani).
