@@ -1,7 +1,7 @@
 import * as Minio from "minio";
 import path from "node:path";
 
-const endPoint = process.env.MINIO_ENDPOINT || "localhost";
+const endPoint = process.env.MINIO_ENDPOINT || "minio";
 const port = Number(process.env.MINIO_PORT || 9000);
 const useSSL = process.env.MINIO_USE_SSL === "true";
 const accessKey = process.env.MINIO_ROOT_USER || process.env.MINIO_ACCESS_KEY || "minioadmin";
