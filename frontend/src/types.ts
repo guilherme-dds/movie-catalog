@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role?: "admin" | "user" | string;
   bio?: string;
+  fotoPerfil?: string | null;
 }
 
 export interface AuthResponse {
@@ -36,9 +37,9 @@ export interface CommentItem {
     id: string;
     nome: string;
     email: string;
+    fotoPerfil?: string | null;
   };
 }
-
 
 export interface TMDBMovie {
   id: number;

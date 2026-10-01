@@ -1,9 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { User as UserIcon, Heart, Edit3, Check, X, ArrowLeft, Film, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  User as UserIcon,
+  Heart,
+  Edit3,
+  Check,
+  X,
+  ArrowLeft,
+  Film,
+  Loader2,
+  Camera,
+  Trash2,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import type { FavoriteItem, TMDBMovie } from "../types";
 import { MovieCard } from "./MovieCard";
-import { getUserProfileApi, updateUserProfileApi } from "../api/backend";
+import {
+  getUserProfileApi,
+  updateUserProfileApi,
+  uploadUserAvatarApi,
+  removeUserAvatarApi,
+} from "../api/backend";
 
 interface ProfilePageProps {
   favorites: FavoriteItem[];
@@ -25,11 +41,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   showToast,
 }) => {
   const { user, token, updateUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [bio, setBio] = useState<string>(user?.bio || "");
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [tempBio, setTempBio] = useState(user?.bio || "");
   const [isSavingBio, setIsSavingBio] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
 
   // Sync profile data from database on mount
   useEffect(() => {
@@ -41,7 +60,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             const bioText = fetchedUser.bio || "";
             setBio(bioText);
             setTempBio(bioText);
-            updateUser({ bio: bioText });
+            updateUser({ bio: bioText, fotoPerfil: fetchedUser.fotoPerfil });
           }
         })
         .catch((err) => {
@@ -78,6 +97,78 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setIsEditingBio(false);
   };
 
+  const handleAvatarClick = () => {
+    if (fileInputRef.current && !isUploadingAvatar && !isRemovingAvatar) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Limpar o valor do input para permitir escolher a mesma imagem novamente se desejar
+    event.target.value = "";
+
+    // 1. Validação do tipo de arquivo (Valida se é imagem)
+    const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    const isImage =
+      allowedMimeTypes.includes(file.type.toLowerCase()) || file.type.startsWith("image/");
+    if (!isImage) {
+      showToast?.(
+        "error",
+        "Formato de arquivo inválido! Por favor envie um arquivo de imagem (JPG, PNG, WEBP, GIF)."
+      );
+      return;
+    }
+
+    // 2. Validação do tamanho ideal da imagem (Máximo 5MB)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+    if (file.size > MAX_SIZE_BYTES) {
+      const sizeInMb = (file.size / (1024 * 1024)).toFixed(1);
+      showToast?.(
+        "error",
+        `A imagem selecionada é muito grande (${sizeInMb}MB)! O tamanho máximo permitido é 5MB.`
+      );
+      return;
+    }
+
+    if (!token) {
+      showToast?.("error", "Você precisa estar autenticado para enviar uma foto de perfil.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const updatedUser = await uploadUserAvatarApi(file, token);
+      updateUser({ fotoPerfil: updatedUser.fotoPerfil });
+      showToast?.(
+        "success",
+        "Foto de perfil salva com sucesso!"
+      );
+    } catch (err: any) {
+      console.error("Erro no upload da foto de perfil:", err);
+      showToast?.("error", err.message || "Erro ao fazer upload da foto de perfil para o MinIO.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!token) return;
+    setIsRemovingAvatar(true);
+    try {
+      await removeUserAvatarApi(token);
+      updateUser({ fotoPerfil: null });
+      showToast?.("success", "Foto de perfil removida com sucesso do MinIO e banco de dados!");
+    } catch (err: any) {
+      console.error("Erro ao remover foto de perfil:", err);
+      showToast?.("error", err.message || "Erro ao remover foto de perfil.");
+    } finally {
+      setIsRemovingAvatar(false);
+    }
+  };
+
   const favoriteMoviesList: TMDBMovie[] = favorites.map((fav) => {
     const fullMovie = movies.find((m) => m.id === fav.tmdbMovieId);
     if (fullMovie) return fullMovie;
@@ -96,18 +187,71 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   return (
     <div className="profile-page-container">
+      {/* Hidden File Input for Image Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: "none" }}
+      />
+
       {/* Return Navigation */}
       <button className="back-catalog-btn" onClick={onBackToCatalog}>
         <ArrowLeft size={18} />
         <span>Voltar ao Catálogo</span>
       </button>
 
-      {/* Profile Card Header: Nome & Bio Curta */}
+      {/* Profile Card Header: Foto de Perfil, Nome & Bio Curta */}
       <div className="profile-card">
         <div className="profile-avatar-wrapper">
-          <div className="profile-avatar-circle">
-            <UserIcon size={44} />
+          <div
+            className={`profile-avatar-circle ${isUploadingAvatar ? "uploading" : ""}`}
+            onClick={handleAvatarClick}
+            title="Clique para alterar a foto de perfil"
+          >
+            {isUploadingAvatar ? (
+              <Loader2 size={36} className="spinning-icon avatar-spinner" />
+            ) : user?.fotoPerfil ? (
+              <img src={user.fotoPerfil} alt={userName} className="profile-avatar-img" />
+            ) : (
+              <UserIcon size={44} />
+            )}
+
+            <div className="avatar-hover-overlay">
+              <Camera size={22} />
+              <span>Alterar</span>
+            </div>
           </div>
+
+          <div className="avatar-action-buttons">
+            <button
+              className="avatar-action-btn upload-btn"
+              onClick={handleAvatarClick}
+              disabled={isUploadingAvatar || isRemovingAvatar}
+              title="Upload de foto de perfil (máx 5MB)"
+            >
+              <Camera size={14} />
+              <span>{user?.fotoPerfil ? "Trocar Foto" : "Enviar Foto"}</span>
+            </button>
+
+            {user?.fotoPerfil && (
+              <button
+                className="avatar-action-btn remove-btn"
+                onClick={handleRemoveAvatar}
+                disabled={isUploadingAvatar || isRemovingAvatar}
+                title="Remover foto de perfil"
+              >
+                {isRemovingAvatar ? (
+                  <Loader2 size={14} className="spinning-icon" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                <span>Remover</span>
+              </button>
+            )}
+          </div>
+          <span className="avatar-hint-text">Formatos: JPG, PNG, WEBP, GIF (máx. 5MB)</span>
         </div>
 
         <div className="profile-info-section">
@@ -145,7 +289,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       title="Salvar no banco de dados"
                       disabled={isSavingBio}
                     >
-                      {isSavingBio ? <Loader2 size={14} className="spinning-icon" /> : <Check size={14} />} Salvar
+                      {isSavingBio ? (
+                        <Loader2 size={14} className="spinning-icon" />
+                      ) : (
+                        <Check size={14} />
+                      )}{" "}
+                      Salvar
                     </button>
                   </div>
                 </div>
@@ -153,7 +302,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             ) : (
               <div className="bio-display-wrapper">
                 <p className="profile-bio-text">
-                  {bio ? bio : <span className="bio-placeholder">Nenhuma bio cadastrada. Clique ao lado para adicionar.</span>}
+                  {bio ? (
+                    bio
+                  ) : (
+                    <span className="bio-placeholder">
+                      Nenhuma bio cadastrada. Clique ao lado para adicionar.
+                    </span>
+                  )}
                 </p>
                 <button
                   className="bio-edit-trigger"

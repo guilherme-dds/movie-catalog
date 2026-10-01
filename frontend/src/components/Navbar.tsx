@@ -109,7 +109,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Ver Meu Perfil"
               >
                 <div className="avatar-circle">
-                  <UserIcon size={16} />
+                  {user?.fotoPerfil ? (
+                    <img src={user.fotoPerfil} alt="" className="navbar-avatar-img" />
+                  ) : (
+                    <UserIcon size={16} />
+                  )}
                 </div>
                 <span className="user-email">{user?.nome || user?.email.split("@")[0]}</span>
               </div>
@@ -128,4 +132,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-

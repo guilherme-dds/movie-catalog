@@ -41,6 +41,7 @@ export class AuthController {
           email: true,
           role: true,
           bio: true,
+          fotoPerfil: true,
           criadoEm: true,
         },
       });
@@ -52,6 +53,7 @@ export class AuthController {
       return res.status(500).json({ error: error.message || "Internal server error" });
     }
   }
+
   async authenticate(req: Request, res: Response) {
     try {
       const { email, password } = req.body || {};
@@ -98,13 +100,13 @@ export class AuthController {
         },
       });
 
-      const { id, nome, role, bio } = user;
+      const { id, nome, role, bio, fotoPerfil } = user;
 
       // Log LOGIN event to Redis Stream via XADD
       await logEvent({ userId: id, acao: "LOGIN", req });
 
       return res.json({
-        user: { id, email, nome, role, bio: bio || "" },
+        user: { id, email, nome, role, bio: bio || "", fotoPerfil: fotoPerfil || null },
         token,
         refreshToken: refreshTokenValue,
       });
@@ -226,4 +228,3 @@ export class AuthController {
     }
   }
 }
-

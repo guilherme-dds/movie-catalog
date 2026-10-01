@@ -217,3 +217,35 @@ export async function updateUserProfileApi(token: string | null, bio: string, no
   return data.user;
 }
 
+export async function uploadUserAvatarApi(file: File, token?: string | null): Promise<User> {
+  const activeToken = token || localStorage.getItem("auth_token");
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const headers: Record<string, string> = {};
+  if (activeToken) {
+    headers["Authorization"] = `Bearer ${activeToken}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/user/avatar`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  const data = await parseResponse<{ user: User; message: string }>(
+    response,
+    "Erro ao enviar foto de perfil para o MinIO"
+  );
+  return data.user;
+}
+
+export async function removeUserAvatarApi(token?: string | null): Promise<User> {
+  const data = await fetchWithAuth<{ user: User }>(
+    "/user/avatar",
+    { method: "DELETE" },
+    token,
+    "Erro ao remover foto de perfil"
+  );
+  return data.user;
+}
