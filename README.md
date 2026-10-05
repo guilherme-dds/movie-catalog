@@ -193,7 +193,8 @@ docker compose up --build -d
 
 4. A aplicação estará acessível unificada na porta configurada:
    - **Aplicação Web & API**: `http://localhost:8209`
-   - **Documentação Swagger API Auth**: `http://localhost:8209/apidocs`
+   - **Documentação Swagger Auth Service**: `http://localhost:8209/auth/apidocs`
+   - **Documentação Swagger Log Service**: `http://localhost:8209/log/apidocs`
 
 ---
 
@@ -206,7 +207,7 @@ docker compose up --build -d
 - `POST /api/auth/logout`: Invalida o token e encerra a sessão.
 - `POST /api/auth/reset`: Solicita redefinição de senha por e-mail.
 - `POST /api/auth/reset/confirm`: Confirma e altera a senha.
-- `GET /apidocs`: Documentação interativa Swagger UI.
+- `GET /auth/apidocs`: Documentação interativa Swagger UI do `auth-service`.
 
 ### Perfil do Usuário & MinIO Avatar (`backend`)
 - `GET /api/user/profile`: Retorna o perfil completo do usuário autenticado.

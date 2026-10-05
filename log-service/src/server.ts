@@ -1,12 +1,28 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
+import swaggerUi from "swagger-ui-express";
 import { Redis } from "ioredis";
 import { AuthMiddleware, AdminMiddleware } from "./middlewares/auth.js";
+import { logSwaggerDocument } from "./swagger.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Swagger UI Documentation for Log Service
+app.use("/log/apidocs", swaggerUi.serve, swaggerUi.setup(logSwaggerDocument));
+app.use("/log/apidocs", swaggerUi.serve, swaggerUi.setup(logSwaggerDocument));
+app.use("/log/api-docs", swaggerUi.serve, swaggerUi.setup(logSwaggerDocument));
+app.use("/log/docs", swaggerUi.serve, swaggerUi.setup(logSwaggerDocument));
+
+// JSON Endpoint for raw OpenAPI spec
+app.get("/log/openapi.json", (req, res) => {
+  res.json(logSwaggerDocument);
+});
+app.get("/openapi.json", (req, res) => {
+  res.json(logSwaggerDocument);
+});
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const PORT = process.env.PORT || 3335;

@@ -11,11 +11,15 @@ app.use(express.json());
 app.use(cors());
 
 // Swagger UI Documentation
-app.use("/apidocs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
+app.use("/auth/apidocs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
+app.use("/auth/apidocs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
+app.use("/auth/api-docs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
+app.use("/auth/docs", swaggerUi.serve, swaggerUi.setup(authSwaggerDocument));
 
 // JSON Endpoint for raw OpenAPI spec
+app.get("/auth/openapi.json", (req, res) => {
+  res.json(authSwaggerDocument);
+});
 app.get("/openapi.json", (req, res) => {
   res.json(authSwaggerDocument);
 });
