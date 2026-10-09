@@ -92,13 +92,56 @@ export async function registerApi(nome: string, email: string, password: string)
   return parseResponse<{ user: User }>(response, "Erro ao cadastrar usuário");
 }
 
+export function isJwtExpired(tokenString?: string | null): boolean {
+  if (!tokenString || typeof tokenString !== "string") return true;
+  try {
+    const parts = tokenString.split(".");
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (typeof payload.exp !== "number") return false;
+    return Date.now() >= payload.exp * 1000 - 5000;
+  } catch {
+    return true;
+  }
+}
+
 async function fetchWithAuth<T>(
   path: string,
   options: RequestInit = {},
   token?: string | null,
   defaultErrorMessage = "Erro na requisição com o servidor"
 ): Promise<T> {
-  const activeToken = token || localStorage.getItem("auth_token");
+  let activeToken = token || localStorage.getItem("auth_token");
+
+  // Se o token estiver expirado antes da requisição, tenta renovar antes de enviar
+  if (activeToken && isJwtExpired(activeToken)) {
+    const storedRefresh = localStorage.getItem("auth_refresh_token");
+    if (storedRefresh) {
+      try {
+        const refreshData = await refreshTokenApi(storedRefresh);
+        activeToken = refreshData.token;
+        localStorage.setItem("auth_token", refreshData.token);
+        if (refreshData.refreshToken) {
+          localStorage.setItem("auth_refresh_token", refreshData.refreshToken);
+        }
+      } catch {
+        window.dispatchEvent(new Event("auth:unauthorized"));
+        throw new Error("Sessão expirada. Por favor faça login novamente.");
+      }
+    } else {
+      window.dispatchEvent(new Event("auth:unauthorized"));
+      throw new Error("Sessão expirada. Por favor faça login novamente.");
+    }
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string> || {}),
@@ -108,10 +151,40 @@ async function fetchWithAuth<T>(
     headers["Authorization"] = `Bearer ${activeToken}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  let response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
+
+  // Se o servidor retornar 401, tenta renovar o token e tentar a requisição novamente uma vez
+  if (response.status === 401) {
+    const storedRefresh = localStorage.getItem("auth_refresh_token");
+    if (storedRefresh) {
+      try {
+        const refreshData = await refreshTokenApi(storedRefresh);
+        activeToken = refreshData.token;
+        localStorage.setItem("auth_token", refreshData.token);
+        if (refreshData.refreshToken) {
+          localStorage.setItem("auth_refresh_token", refreshData.refreshToken);
+        }
+        headers["Authorization"] = `Bearer ${activeToken}`;
+        response = await fetch(`${API_BASE_URL}${path}`, {
+          ...options,
+          headers,
+        });
+      } catch {
+        window.dispatchEvent(new Event("auth:unauthorized"));
+        throw new Error("Sessão expirada. Por favor faça login novamente.");
+      }
+    } else {
+      window.dispatchEvent(new Event("auth:unauthorized"));
+      throw new Error("Sessão expirada. Por favor faça login novamente.");
+    }
+  }
+
+  if (response.status === 401) {
+    window.dispatchEvent(new Event("auth:unauthorized"));
+  }
 
   return parseResponse<T>(response, defaultErrorMessage);
 }

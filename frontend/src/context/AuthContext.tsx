@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User, AuthResponse } from "../types";
-import { loginApi, registerApi, refreshTokenApi, logoutApi } from "../api/backend";
+import { loginApi, registerApi, refreshTokenApi, logoutApi, isJwtExpired } from "../api/backend";
 
 interface AuthContextType {
   user: User | null;
@@ -78,23 +78,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [refreshToken, logout]);
 
+  // Listener global para eventos de requisição não autorizada (401)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [logout]);
+
+  // Restauração inicial de sessão com verificação proativa do JWT
   useEffect(() => {
     const storedToken = localStorage.getItem("auth_token");
     const storedRefreshToken = localStorage.getItem("auth_refresh_token");
     const storedUser = localStorage.getItem("auth_user");
 
     if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setRefreshToken(storedRefreshToken);
-        setUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.error("Erro ao restaurar sessão:", err);
-        logout();
+      if (isJwtExpired(storedToken)) {
+        if (storedRefreshToken) {
+          refreshTokenApi(storedRefreshToken)
+            .then((data) => {
+              setToken(data.token);
+              localStorage.setItem("auth_token", data.token);
+              if (data.refreshToken) {
+                setRefreshToken(data.refreshToken);
+                localStorage.setItem("auth_refresh_token", data.refreshToken);
+              }
+              setUser(JSON.parse(storedUser));
+            })
+            .catch(() => {
+              logout();
+            })
+            .finally(() => {
+              setIsLoading(false);
+            });
+          return;
+        } else {
+          logout();
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        try {
+          setToken(storedToken);
+          setRefreshToken(storedRefreshToken);
+          setUser(JSON.parse(storedUser));
+        } catch (err) {
+          console.error("Erro ao restaurar sessão:", err);
+          logout();
+        }
       }
     }
     setIsLoading(false);
-  }, []);
+  }, [logout]);
+
+  // Monitoramento periódico da validade do JWT para logout/refresh automático
+  useEffect(() => {
+    if (!token) return;
+
+    const checkInterval = setInterval(() => {
+      const currentToken = token || localStorage.getItem("auth_token");
+      if (currentToken && isJwtExpired(currentToken)) {
+        refreshSession().catch(() => {
+          logout();
+        });
+      }
+    }, 10000);
+
+    return () => clearInterval(checkInterval);
+  }, [token, refreshSession, logout]);
 
   const login = async (email: string, pass: string) => {
     const data: AuthResponse = await loginApi(email, pass);
