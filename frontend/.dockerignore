@@ -1,5 +1,6 @@
 node_modules
 dist
-npm-debug.log
-.git
-.gitignore
+dist-ssr
+.vite
+npm-debug.log*
+*.local
