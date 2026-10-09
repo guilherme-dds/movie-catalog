@@ -12,11 +12,21 @@ import {
   User as UserIcon,
   Sparkles,
   Loader2,
+  Plus,
+  ListPlus,
+  Crown,
 } from "lucide-react";
-import type { TMDBMovie, CommentItem } from "../types";
+import type { TMDBMovie, CommentItem, CustomList } from "../types";
 import { getImageUrl } from "../api/tmdb";
 import { useAuth } from "../context/AuthContext";
-import { getCommentsApi, addCommentApi, deleteCommentApi } from "../api/backend";
+import {
+  getCommentsApi,
+  addCommentApi,
+  deleteCommentApi,
+  getCustomListsApi,
+  addMovieToCustomListApi,
+} from "../api/backend";
+import { PremiumBadge } from "./PremiumBadge";
 
 interface MovieDetailsModalProps {
   movie: TMDBMovie | null;
@@ -24,8 +34,9 @@ interface MovieDetailsModalProps {
   isFavorite: boolean;
   isFavoriting?: boolean;
   onToggleFavorite: (movie: TMDBMovie) => void;
-  showToast: (type: "success" | "error", text: string) => void;
+  showToast: (type: "success" | "error" | "info", text: string) => void;
   openAuthModal: () => void;
+  openPremiumModal?: () => void;
 }
 
 export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
@@ -36,12 +47,17 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   onToggleFavorite,
   showToast,
   openAuthModal,
+  openPremiumModal,
 }) => {
   const { user, token, isAuthenticated } = useAuth();
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
+  const [showAddToListDropdown, setShowAddToListDropdown] = useState(false);
+  const [addingToListId, setAddingToListId] = useState<number | null>(null);
 
   const fetchComments = useCallback(async () => {
     if (!movie) return;
@@ -56,13 +72,25 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [movie, token]);
 
+  const fetchCustomLists = useCallback(async () => {
+    if (!token || !user?.isPremium) return;
+    try {
+      const lists = await getCustomListsApi(token);
+      setCustomLists(lists);
+    } catch {
+      // ignore silently if not premium
+    }
+  }, [token, user?.isPremium]);
+
   useEffect(() => {
     if (movie) {
       fetchComments();
+      fetchCustomLists();
     } else {
       setComments([]);
+      setShowAddToListDropdown(false);
     }
-  }, [movie, fetchComments]);
+  }, [movie, fetchComments, fetchCustomLists]);
 
   if (!movie) return null;
 
@@ -82,7 +110,12 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setNewCommentText("");
       showToast("success", "Comentário publicado com sucesso!");
     } catch (err: any) {
-      showToast("error", err.message || "Erro ao adicionar comentário.");
+      if (err.message && err.message.includes("Plano Gratuito") && openPremiumModal) {
+        showToast("error", err.message);
+        openPremiumModal();
+      } else {
+        showToast("error", err.message || "Erro ao adicionar comentário.");
+      }
     } finally {
       setIsSubmittingComment(false);
     }
@@ -99,12 +132,39 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
+  const handleAddMovieToCustomList = async (listId: number, listTitle: string) => {
+    if (!token) return;
+    setAddingToListId(listId);
+    try {
+      await addMovieToCustomListApi(token, listId, movie.id, movie.title, movie.poster_path);
+      showToast("success", `Filme adicionado à lista "${listTitle}"!`);
+      setShowAddToListDropdown(false);
+    } catch (err: any) {
+      showToast("error", err.message || "Erro ao adicionar filme à lista personalizada.");
+    } finally {
+      setAddingToListId(null);
+    }
+  };
+
+  const handleCustomListBtnClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    if (!user?.isPremium) {
+      showToast("info", "Listas personalizadas são exclusivas para membros Premium!");
+      if (openPremiumModal) openPremiumModal();
+      return;
+    }
+    setShowAddToListDropdown(!showAddToListDropdown);
+  };
+
   const releaseDateFormatted = movie.release_date
     ? new Date(movie.release_date).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    })
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
     : "Data desconhecida";
 
   return (
@@ -115,7 +175,7 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         </button>
 
         <div className="details-layout">
-          {/* Left Column: Poster & Quick Action */}
+          {/* Left Column: Poster & Quick Actions */}
           <div className="details-sidebar">
             <div className="details-poster-wrapper">
               <img
@@ -129,29 +189,68 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </div>
             </div>
 
-            <button
-              className={`details-fav-btn ${isFavorite ? "active" : ""} ${isFavoriting ? "loading" : ""}`}
-              disabled={isFavoriting}
-              onClick={() => {
-                if (!isAuthenticated) {
-                  openAuthModal();
-                } else if (!isFavoriting) {
-                  onToggleFavorite(movie);
-                }
-              }}
-            >
-              {isFavoriting ? (
-                <>
-                  <Loader2 size={20} className="spinning-icon" />
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <>
-                  <Heart size={20} className={isFavorite ? "fill-heart" : ""} />
-                  <span>{isFavorite ? "Favoritado" : "Adicionar aos Favoritos"}</span>
-                </>
-              )}
-            </button>
+            <div className="sidebar-action-buttons">
+              <button
+                className={`details-fav-btn ${isFavorite ? "active" : ""} ${isFavoriting ? "loading" : ""}`}
+                disabled={isFavoriting}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openAuthModal();
+                  } else if (!isFavoriting) {
+                    onToggleFavorite(movie);
+                  }
+                }}
+              >
+                {isFavoriting ? (
+                  <>
+                    <Loader2 size={20} className="spinning-icon" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Heart size={20} className={isFavorite ? "fill-heart" : ""} />
+                    <span>{isFavorite ? "Favoritado" : "Adicionar aos Favoritos"}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Add to Custom List (Premium Feature) */}
+              <div className="custom-list-dropdown-container">
+                <button
+                  className={`btn-add-custom-list ${user?.isPremium ? "premium-unlocked" : "locked-feature"}`}
+                  onClick={handleCustomListBtnClick}
+                >
+                  <ListPlus size={18} />
+                  <span>Adicionar à Lista</span>
+                  {!user?.isPremium && <Crown size={14} className="gold-crown-icon" />}
+                </button>
+
+                {showAddToListDropdown && user?.isPremium && (
+                  <div className="custom-list-dropdown-menu">
+                    <div className="dropdown-header">Escolha uma Lista:</div>
+                    {customLists.length === 0 ? (
+                      <div className="dropdown-empty">
+                        <p>Nenhuma lista criada.</p>
+                        <p className="sub">Crie uma lista no seu Perfil!</p>
+                      </div>
+                    ) : (
+                      customLists.map((list) => (
+                        <button
+                          key={list.id}
+                          className="dropdown-item"
+                          disabled={addingToListId === list.id}
+                          onClick={() => handleAddMovieToCustomList(list.id, list.nome)}
+                        >
+                          <Plus size={14} />
+                          <span>{list.nome}</span>
+                          {addingToListId === list.id && <Loader2 size={14} className="spinning-icon" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Information & Comments */}
@@ -246,43 +345,51 @@ export const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     <p>Nenhum comentário publicado ainda.</p>
                   </div>
                 ) : (
-                  comments.map((c) => (
-                    <div key={c.id} className="comment-card">
-                      <div className="comment-header">
-                        <div className="comment-author">
-                          <div className="author-avatar">
-                            <UserIcon size={14} />
+                  comments.map((c) => {
+                    const isCommentAuthorPremium = Boolean(c.usuario?.isPremium);
+                    const authorName = c.usuario?.nome || (c.usuarioId === user?.id ? "Você" : `Usuário #${c.usuarioId.slice(0, 6)}`);
+
+                    return (
+                      <div key={c.id} className={`comment-card ${isCommentAuthorPremium ? "premium-author-card" : ""}`}>
+                        <div className="comment-header">
+                          <div className="comment-author">
+                            <div className="avatar-circle small">
+                              {c.usuario?.fotoPerfil ? (
+                                <img src={c.usuario.fotoPerfil} alt="" className="comment-avatar-img" />
+                              ) : (
+                                <UserIcon size={14} />
+                              )}
+                            </div>
+                            <span className="author-name">{authorName}</span>
+                            {isCommentAuthorPremium && <PremiumBadge size="sm" />}
                           </div>
-                          <span className="author-name">
-                            {c.usuarioId === user?.id ? "Você" : `Usuário #${c.usuarioId}`}
-                          </span>
+                          <div className="comment-meta">
+                            {c.criadoEm && (
+                              <span className="comment-date">
+                                {new Date(c.criadoEm).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            )}
+                            {c.usuarioId === user?.id && (
+                              <button
+                                className="delete-comment-btn"
+                                onClick={() => handleDeleteComment(c.id)}
+                                title="Deletar comentário"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="comment-meta">
-                          {c.criadoEm && (
-                            <span className="comment-date">
-                              {new Date(c.criadoEm).toLocaleDateString("pt-BR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          )}
-                          {c.usuarioId === user?.id && (
-                            <button
-                              className="delete-comment-btn"
-                              onClick={() => handleDeleteComment(c.id)}
-                              title="Deletar comentário"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </div>
+                        <p className="comment-body">{c.texto}</p>
                       </div>
-                      <p className="comment-body">{c.texto}</p>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

@@ -7,21 +7,59 @@ export class CommentController {
     const { tmdbMovieId, texto } = req.body;
     const { userId } = req;
 
+    if (!userId) {
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+
+    if (!texto || typeof texto !== "string" || texto.trim().length === 0) {
+      return res.status(400).json({ error: "O texto do comentário é obrigatório." });
+    }
+
     try {
+      const user = await prisma.usuario.findUnique({
+        where: { id: userId },
+        select: { isPremium: true },
+      });
+
+      if (!user?.isPremium) {
+        const count = await prisma.comentario.count({
+          where: { usuarioId: userId },
+        });
+
+        if (count >= 5) {
+          return res.status(403).json({
+            error: "Limite de 5 comentários atingido no Plano Gratuito. Torne-se Premium para comentar e favoritar sem limites!",
+            limitReached: true,
+          });
+        }
+      }
+
       const newComment = await prisma.comentario.create({
         data: {
           usuarioId: userId,
-          tmdbMovieId,
-          texto,
+          tmdbMovieId: Number(tmdbMovieId),
+          texto: texto.trim(),
+        },
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              nome: true,
+              email: true,
+              fotoPerfil: true,
+              isPremium: true,
+            },
+          },
         },
       });
 
       await logEvent({ userId, acao: "CREATE_COMMENT", req });
 
       return res.status(201).json({ newComment });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao criar comentário:", error);
       await logEvent({ userId, acao: "ERROR", req });
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Erro interno do servidor." });
     }
   }
 
@@ -32,15 +70,29 @@ export class CommentController {
     try {
       const comments = await prisma.comentario.findMany({
         where: {
-          usuarioId: userId,
           tmdbMovieId: movieId,
+        },
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              nome: true,
+              email: true,
+              fotoPerfil: true,
+              isPremium: true,
+            },
+          },
+        },
+        orderBy: {
+          criadoEm: "desc",
         },
       });
 
       return res.status(200).json({ comments });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao listar comentários:", error);
       await logEvent({ userId, acao: "ERROR", req });
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Erro interno do servidor." });
     }
   }
 
@@ -54,6 +106,8 @@ export class CommentController {
               id: true,
               nome: true,
               email: true,
+              fotoPerfil: true,
+              isPremium: true,
             },
           },
         },
@@ -105,4 +159,3 @@ export class CommentController {
     }
   }
 }
-

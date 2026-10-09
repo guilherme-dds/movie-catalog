@@ -18,6 +18,11 @@ export class FavoriteController {
     const movieIdNum = Number(tmdbMovieId);
 
     try {
+      const user = await prisma.usuario.findUnique({
+        where: { id: userId },
+        select: { isPremium: true },
+      });
+
       const existingFav = await prisma.favorito.findFirst({
         where: {
           usuarioId: userId,
@@ -28,6 +33,19 @@ export class FavoriteController {
       if (existingFav) {
         await logEvent({ userId, acao: "FAVORITE_MOVIE", req });
         return res.status(200).json({ newFavorite: existingFav });
+      }
+
+      if (!user?.isPremium) {
+        const count = await prisma.favorito.count({
+          where: { usuarioId: userId },
+        });
+
+        if (count >= 5) {
+          return res.status(403).json({
+            error: "Limite de 5 favoritos atingido no Plano Gratuito. Torne-se Premium para ter favoritos e comentários ilimitados!",
+            limitReached: true,
+          });
+        }
       }
 
       const newFavorite = await prisma.favorito.create({

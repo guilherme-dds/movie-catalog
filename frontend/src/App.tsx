@@ -2,19 +2,19 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { TMDBMovie, FavoriteItem } from "./types";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { fetchTomHanksMovies } from "./api/tmdb";
-import { getFavoritesApi, addFavoriteApi, deleteFavoriteApi } from "./api/backend";
+import { getFavoritesApi, addFavoriteApi, deleteFavoriteApi, getUserProfileApi, verifyStripeSessionApi } from "./api/backend";
 
 import { Navbar } from "./components/Navbar";
 import { MovieCard } from "./components/MovieCard";
 import { MovieDetailsModal } from "./components/MovieDetailsModal";
 import { AdminCommentsModal } from "./components/AdminCommentsModal";
+import { PremiumModal } from "./components/PremiumModal";
 import { AuthPage } from "./components/AuthPage";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { Toast, type ToastMessage } from "./components/Toast";
 import { ProfilePage } from "./components/ProfilePage";
 
 import { Film, Clapperboard, Heart, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
-
 
 const ITEMS_PER_PAGE = 8;
 
@@ -50,7 +50,7 @@ interface MainCatalogProps {
 }
 
 const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
-  const { token, isAuthenticated, refreshSession } = useAuth();
+  const { token, isAuthenticated, refreshSession, updateUser } = useAuth();
 
   const [currentView, setCurrentView] = useState<"catalog" | "profile">("catalog");
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
@@ -65,7 +65,46 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [favoritingMovieIds, setFavoritingMovieIds] = useState<Set<number>>(new Set());
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
 
+  // Check URL parameters for Stripe Checkout status
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const stripeStatus = query.get("stripe_status");
+
+    if (stripeStatus === "success" || stripeStatus === "success_mock") {
+      const sessionId = query.get("session_id");
+      if (token) {
+        verifyStripeSessionApi(token, sessionId)
+          .then((data) => {
+            if (data.user) {
+              updateUser({ isPremium: data.user.isPremium, ...data.user });
+              showToast("success", "🎉 Parabéns! Sua assinatura do Plano Premium foi ativada com sucesso!");
+            }
+          })
+          .catch((err) => {
+            console.error("Erro ao verificar sessão do Stripe:", err);
+            getUserProfileApi(token).then((u) => {
+              updateUser({ isPremium: u.isPremium, ...u });
+            }).catch(() => {});
+          });
+      } else {
+        showToast("success", "🎉 Parabéns! Sua assinatura do Plano Premium foi ativada!");
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (stripeStatus === "cancel") {
+      showToast("info", "Fluxo de pagamento com o Stripe cancelado. Você continua no Plano Gratuito.");
+      if (token) {
+        getUserProfileApi(token).then((u) => {
+          updateUser({ isPremium: u.isPremium, ...u });
+        }).catch(() => {});
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (stripeStatus === "manage_mock") {
+      showToast("info", "Você já possui uma assinatura do Plano Premium ativa.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [token, updateUser, showToast]);
 
   // Load Movies from TMDB
   const loadMovies = useCallback(async () => {
@@ -157,7 +196,12 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         showToast("success", `"${movie.title}" adicionado aos favoritos!`);
       }
     } catch (err: any) {
-      showToast("error", err.message || "Erro ao atualizar favoritos.");
+      if (err.message && err.message.includes("Plano Gratuito")) {
+        showToast("error", err.message);
+        setIsPremiumModalOpen(true);
+      } else {
+        showToast("error", err.message || "Erro ao atualizar favoritos.");
+      }
     } finally {
       setFavoritingMovieIds((prev) => {
         const next = new Set(prev);
@@ -175,7 +219,6 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
   // Filter movies by search term & favorites filter
   const filteredMovies = useMemo(() => {
     return movies.filter((movie) => {
-      // Check search match
       const query = searchTerm.toLowerCase().trim();
       const matchesSearch =
         !query ||
@@ -184,7 +227,6 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         (movie.character && movie.character.toLowerCase().includes(query)) ||
         (movie.release_date && movie.release_date.includes(query));
 
-      // Check favorite match
       const matchesFavorite = !showOnlyFavorites || favoriteMovieIds.has(movie.id);
 
       return matchesSearch && matchesFavorite;
@@ -208,6 +250,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         favoritesCount={favorites.length}
         openAuthModal={() => { }}
         openAdminModal={() => setIsAdminModalOpen(true)}
+        openPremiumModal={() => setIsPremiumModalOpen(true)}
         onProfileClick={() => setCurrentView("profile")}
         onBrandClick={() => setCurrentView("catalog")}
         currentView={currentView}
@@ -223,6 +266,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
             onSelectMovie={(m) => setSelectedMovie(m)}
             onBackToCatalog={() => setCurrentView("catalog")}
             showToast={showToast}
+            openPremiumModal={() => setIsPremiumModalOpen(true)}
           />
         ) : (
           <>
@@ -362,6 +406,7 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         onToggleFavorite={handleToggleFavorite}
         showToast={showToast}
         openAuthModal={() => { }}
+        openPremiumModal={() => setIsPremiumModalOpen(true)}
       />
 
       {/* Admin Moderation Modal */}
@@ -371,8 +416,14 @@ const MainCatalog: React.FC<MainCatalogProps> = ({ showToast }) => {
         moviesList={movies}
         showToast={showToast}
       />
-    </div>
 
+      {/* Premium Subscription Modal */}
+      <PremiumModal
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+        showToast={showToast}
+      />
+    </div>
   );
 };
 
@@ -380,9 +431,9 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
-  const showToast = (type: "success" | "error" | "info", text: string) => {
+  const showToast = useCallback((type: "success" | "error" | "info", text: string) => {
     setToast({ id: Date.now().toString(), type, text });
-  };
+  }, []);
 
   const isResetRoute =
     window.location.pathname.includes("reset-password") ||

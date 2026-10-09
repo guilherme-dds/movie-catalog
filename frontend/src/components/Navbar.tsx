@@ -1,6 +1,7 @@
 import React from "react";
-import { Film, Heart, Search, LogOut, User as UserIcon, Sparkles, ShieldAlert } from "lucide-react";
+import { Film, Heart, Search, LogOut, User as UserIcon, Sparkles, ShieldAlert, Crown } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { PremiumBadge } from "./PremiumBadge";
 
 interface NavbarProps {
   searchTerm: string;
@@ -10,6 +11,7 @@ interface NavbarProps {
   favoritesCount: number;
   openAuthModal: () => void;
   openAdminModal?: () => void;
+  openPremiumModal?: () => void;
   onProfileClick?: () => void;
   onBrandClick?: () => void;
   currentView?: "catalog" | "profile";
@@ -23,12 +25,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   favoritesCount,
   openAuthModal,
   openAdminModal,
+  openPremiumModal,
   onProfileClick,
   onBrandClick,
   currentView = "catalog",
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isPremium = Boolean(user?.isPremium);
 
   const handleBrandClick = () => {
     setShowOnlyFavorites(false);
@@ -87,6 +91,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             {favoritesCount > 0 && <span className="favorites-badge">{favoritesCount}</span>}
           </button>
 
+          {/* Premium Plan Upgrade / Status Button */}
+          {isAuthenticated && openPremiumModal && (
+            <button
+              className={`nav-btn ${isPremium ? "premium-active-btn" : "premium-nav-btn"}`}
+              onClick={openPremiumModal}
+              title={isPremium ? "Você é um Membro Premium!" : "Assinar o Plano Premium"}
+            >
+              <Crown size={18} className={isPremium ? "crown-active" : "crown-glow"} />
+              <span className="btn-label">{isPremium ? "Premium" : "Seja Premium"}</span>
+            </button>
+          )}
+
           {/* Admin Moderation Button */}
           {isAuthenticated && isAdmin && openAdminModal && (
             <button
@@ -115,7 +131,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <UserIcon size={16} />
                   )}
                 </div>
-                <span className="user-email">{user?.nome || user?.email.split("@")[0]}</span>
+                <div className="user-name-wrapper">
+                  <span className="user-email">{user?.nome || user?.email.split("@")[0]}</span>
+                  {isPremium && <PremiumBadge size="sm" showIconOnly />}
+                </div>
               </div>
               <button className="logout-btn" onClick={logout} title="Sair da Conta">
                 <LogOut size={18} />

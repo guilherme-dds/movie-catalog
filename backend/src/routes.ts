@@ -3,6 +3,8 @@ import multer from "multer";
 import { UserController } from "./controller/UserController.js";
 import { FavoriteController } from "./controller/FavoriteController.js";
 import { CommentController } from "./controller/CommentController.js";
+import { CustomListController } from "./controller/CustomListController.js";
+import { StripeController } from "./controller/StripeController.js";
 import { AuthMiddleware, AdminMiddleware } from "./middlewares/auth.js";
 
 const upload = multer({
@@ -15,6 +17,8 @@ const upload = multer({
 const usercontroller = new UserController();
 const favoritecontroller = new FavoriteController();
 const commentcontroller = new CommentController();
+const customListController = new CustomListController();
+const stripeController = new StripeController();
 
 export const router = Router();
 
@@ -70,3 +74,35 @@ router.delete("/api/comment/delete/:id", AuthMiddleware, commentcontroller.delet
 
 router.get("/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
 router.get("/api/comment/:movieId", AuthMiddleware, commentcontroller.commentList);
+
+// Custom Lists Routes (Premium feature)
+router.post("/custom-list", AuthMiddleware, (req, res) => customListController.create(req, res));
+router.post("/api/custom-list", AuthMiddleware, (req, res) => customListController.create(req, res));
+
+router.get("/custom-list", AuthMiddleware, (req, res) => customListController.index(req, res));
+router.get("/api/custom-list", AuthMiddleware, (req, res) => customListController.index(req, res));
+
+router.post("/custom-list/:id/items", AuthMiddleware, (req, res) => customListController.addItem(req, res));
+router.post("/api/custom-list/:id/items", AuthMiddleware, (req, res) => customListController.addItem(req, res));
+
+router.delete("/custom-list/:id/items/:movieId", AuthMiddleware, (req, res) => customListController.removeItem(req, res));
+router.delete("/api/custom-list/:id/items/:movieId", AuthMiddleware, (req, res) => customListController.removeItem(req, res));
+
+router.delete("/custom-list/:id", AuthMiddleware, (req, res) => customListController.delete(req, res));
+router.delete("/api/custom-list/:id", AuthMiddleware, (req, res) => customListController.delete(req, res));
+
+// Stripe Routes
+router.post("/stripe/create-checkout-session", AuthMiddleware, (req, res) => stripeController.createCheckoutSession(req, res));
+router.post("/api/stripe/create-checkout-session", AuthMiddleware, (req, res) => stripeController.createCheckoutSession(req, res));
+
+router.post("/stripe/verify-session", AuthMiddleware, (req, res) => stripeController.verifySession(req, res));
+router.post("/api/stripe/verify-session", AuthMiddleware, (req, res) => stripeController.verifySession(req, res));
+
+router.post("/stripe/webhook", (req, res) => stripeController.webhook(req, res));
+router.post("/api/stripe/webhook", (req, res) => stripeController.webhook(req, res));
+
+router.post("/stripe/mock-upgrade", AuthMiddleware, (req, res) => stripeController.mockUpgrade(req, res));
+router.post("/api/stripe/mock-upgrade", AuthMiddleware, (req, res) => stripeController.mockUpgrade(req, res));
+
+router.post("/stripe/cancel", AuthMiddleware, (req, res) => stripeController.cancelSubscription(req, res));
+router.post("/api/stripe/cancel", AuthMiddleware, (req, res) => stripeController.cancelSubscription(req, res));

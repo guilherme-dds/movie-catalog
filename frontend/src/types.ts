@@ -3,6 +3,9 @@ export interface User {
   nome?: string;
   email: string;
   role?: "admin" | "user" | string;
+  isPremium?: boolean;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
   bio?: string;
   fotoPerfil?: string | null;
 }
@@ -38,7 +41,26 @@ export interface CommentItem {
     nome: string;
     email: string;
     fotoPerfil?: string | null;
+    isPremium?: boolean;
   };
+}
+
+export interface CustomListItem {
+  id: number;
+  listaPersonalizadaId: number;
+  tmdbMovieId: number;
+  titulo: string;
+  posterPath: string | null;
+  criadoEm?: string;
+}
+
+export interface CustomList {
+  id: number;
+  usuarioId: string;
+  nome: string;
+  descricao?: string | null;
+  criadoEm?: string;
+  itens?: CustomListItem[];
 }
 
 export interface TMDBMovie {

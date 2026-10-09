@@ -1,4 +1,4 @@
-import type { User, AuthResponse, RefreshTokenResponse, FavoriteItem, CommentItem } from "../types";
+import type { User, AuthResponse, RefreshTokenResponse, FavoriteItem, CommentItem, CustomList, CustomListItem } from "../types";
 
 export function getApiBaseUrl(): string {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string;
@@ -248,4 +248,119 @@ export async function removeUserAvatarApi(token?: string | null): Promise<User> 
     "Erro ao remover foto de perfil"
   );
   return data.user;
+}
+
+/* ==========================================================================
+   CUSTOM LISTS API (PREMIUM FEATURE)
+   ========================================================================== */
+
+export async function getCustomListsApi(token?: string | null): Promise<CustomList[]> {
+  const data = await fetchWithAuth<{ lists?: CustomList[] }>(
+    "/custom-list",
+    {},
+    token,
+    "Erro ao carregar listas personalizadas"
+  );
+  return data.lists || [];
+}
+
+export async function createCustomListApi(
+  token: string | null,
+  nome: string,
+  descricao?: string
+): Promise<CustomList> {
+  const data = await fetchWithAuth<{ list: CustomList }>(
+    "/custom-list",
+    {
+      method: "POST",
+      body: JSON.stringify({ nome, descricao }),
+    },
+    token,
+    "Erro ao criar lista personalizada"
+  );
+  return data.list;
+}
+
+export async function addMovieToCustomListApi(
+  token: string | null,
+  listId: number,
+  tmdbMovieId: number,
+  titulo: string,
+  posterPath: string | null
+): Promise<CustomListItem> {
+  const data = await fetchWithAuth<{ item: CustomListItem }>(
+    `/custom-list/${listId}/items`,
+    {
+      method: "POST",
+      body: JSON.stringify({ tmdbMovieId, titulo, posterPath }),
+    },
+    token,
+    "Erro ao adicionar filme à lista personalizada"
+  );
+  return data.item;
+}
+
+export async function removeMovieFromCustomListApi(
+  token: string | null,
+  listId: number,
+  tmdbMovieId: number
+): Promise<void> {
+  await fetchWithAuth<void>(
+    `/custom-list/${listId}/items/${tmdbMovieId}`,
+    { method: "DELETE" },
+    token,
+    "Erro ao remover filme da lista personalizada"
+  );
+}
+
+export async function deleteCustomListApi(token: string | null, listId: number): Promise<void> {
+  await fetchWithAuth<void>(
+    `/custom-list/${listId}`,
+    { method: "DELETE" },
+    token,
+    "Erro ao excluir lista personalizada"
+  );
+}
+
+/* ==========================================================================
+   STRIPE & PREMIUM SUBSCRIPTION API
+   ========================================================================== */
+
+export async function createStripeCheckoutSessionApi(token?: string | null): Promise<{ url: string; mockActivated?: boolean; message?: string }> {
+  return fetchWithAuth<{ url: string; mockActivated?: boolean; message?: string }>(
+    "/stripe/create-checkout-session",
+    { method: "POST" },
+    token,
+    "Erro ao iniciar checkout do Stripe"
+  );
+}
+
+export async function toggleMockPremiumApi(token?: string | null): Promise<{ user: User; message: string }> {
+  return fetchWithAuth<{ user: User; message: string }>(
+    "/stripe/mock-upgrade",
+    { method: "POST" },
+    token,
+    "Erro ao alternar status do Plano Premium"
+  );
+}
+
+export async function verifyStripeSessionApi(token?: string | null, sessionId?: string | null): Promise<{ user: User; success: boolean }> {
+  return fetchWithAuth<{ user: User; success: boolean }>(
+    "/stripe/verify-session",
+    {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    },
+    token,
+    "Erro ao verificar pagamento do Stripe"
+  );
+}
+
+export async function cancelStripeSubscriptionApi(token?: string | null): Promise<{ user: User; message: string }> {
+  return fetchWithAuth<{ user: User; message: string }>(
+    "/stripe/cancel",
+    { method: "POST" },
+    token,
+    "Erro ao cancelar assinatura do Stripe"
+  );
 }

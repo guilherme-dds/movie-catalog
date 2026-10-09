@@ -34,12 +34,14 @@ export class AuthController {
           email,
           senhaHash: hash_password,
           role: userRole,
+          isPremium: false,
         },
         select: {
           id: true,
           nome: true,
           email: true,
           role: true,
+          isPremium: true,
           bio: true,
           fotoPerfil: true,
           criadoEm: true,
@@ -84,9 +86,11 @@ export class AuthController {
         return res.status(500).json({ error: "JWT_SECRET is not configured" });
       }
 
-      const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
-        expiresIn: "15m",
-      });
+      const token = jwt.sign(
+        { id: user.id, role: user.role, isPremium: user.isPremium },
+        JWT_SECRET,
+        { expiresIn: "15m" }
+      );
 
       const refreshTokenValue = randomUUID();
       const expiresAt = new Date();
@@ -100,13 +104,13 @@ export class AuthController {
         },
       });
 
-      const { id, nome, role, bio, fotoPerfil } = user;
+      const { id, nome, role, isPremium, bio, fotoPerfil } = user;
 
       // Log LOGIN event to Redis Stream via XADD
       await logEvent({ userId: id, acao: "LOGIN", req });
 
       return res.json({
-        user: { id, email, nome, role, bio: bio || "", fotoPerfil: fotoPerfil || null },
+        user: { id, email, nome, role, isPremium: Boolean(isPremium), bio: bio || "", fotoPerfil: fotoPerfil || null },
         token,
         refreshToken: refreshTokenValue,
       });
@@ -179,7 +183,7 @@ export class AuthController {
       }
 
       const newToken = jwt.sign(
-        { id: storedToken.usuarioId, role: storedToken.usuario.role },
+        { id: storedToken.usuarioId, role: storedToken.usuario.role, isPremium: storedToken.usuario.isPremium },
         JWT_SECRET,
         { expiresIn: "15m" }
       );
@@ -222,7 +226,7 @@ export class AuthController {
         return res.status(401).json({ valid: false, error: "Token invalid" });
       }
 
-      return res.json({ valid: true, userId: decoded.id, role: decoded.role });
+      return res.json({ valid: true, userId: decoded.id, role: decoded.role, isPremium: decoded.isPremium });
     } catch (error: any) {
       return res.status(401).json({ valid: false, error: error.message || "Token invalid" });
     }

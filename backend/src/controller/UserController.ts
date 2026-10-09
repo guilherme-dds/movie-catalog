@@ -14,6 +14,7 @@ export class UserController {
         nome: true,
         email: true,
         role: true,
+        isPremium: true,
         bio: true,
         fotoPerfil: true,
         criadoEm: true,
@@ -36,6 +37,9 @@ export class UserController {
           nome: true,
           email: true,
           role: true,
+          isPremium: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
           bio: true,
           fotoPerfil: true,
           criadoEm: true,
@@ -44,6 +48,48 @@ export class UserController {
 
       if (!user) {
         return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+
+      // Se o usuário não estiver marcado como premium no banco local, mas tiver um customerId no Stripe, sincroniza automaticamente
+      if (!user.isPremium && user.stripeCustomerId && !user.stripeCustomerId.startsWith("cus_test_mock_")) {
+        const secretKey = process.env.STRIPE_SECRET_KEY;
+        if (secretKey && secretKey.trim().length > 0 && !secretKey.includes("YOUR_STRIPE")) {
+          try {
+            const Stripe = (await import("stripe")).default;
+            const stripe = new Stripe(secretKey);
+            const subs = await stripe.subscriptions.list({
+              customer: user.stripeCustomerId,
+              status: "active",
+              limit: 1,
+            });
+
+            if (subs.data && subs.data.length > 0) {
+              const activeSub = subs.data[0];
+              const updatedUser = await prisma.usuario.update({
+                where: { id: userId },
+                data: {
+                  isPremium: true,
+                  stripeSubscriptionId: activeSub.id,
+                },
+                select: {
+                  id: true,
+                  nome: true,
+                  email: true,
+                  role: true,
+                  isPremium: true,
+                  stripeCustomerId: true,
+                  stripeSubscriptionId: true,
+                  bio: true,
+                  fotoPerfil: true,
+                  criadoEm: true,
+                },
+              });
+              return res.json({ user: updatedUser });
+            }
+          } catch (stripeErr: any) {
+            console.warn("[Stripe Auto-Sync] Erro ao sincronizar assinaturas ativas:", stripeErr.message);
+          }
+        }
       }
 
       return res.json({ user });
@@ -81,6 +127,7 @@ export class UserController {
           nome: true,
           email: true,
           role: true,
+          isPremium: true,
           bio: true,
           fotoPerfil: true,
           criadoEm: true,
@@ -109,7 +156,6 @@ export class UserController {
         return res.status(400).json({ error: "Nenhum arquivo de imagem foi enviado." });
       }
 
-      // Validação de tipo de arquivo
       const allowedMimetypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
       if (!allowedMimetypes.includes(file.mimetype.toLowerCase()) && !file.mimetype.startsWith("image/")) {
         return res.status(400).json({
@@ -117,7 +163,6 @@ export class UserController {
         });
       }
 
-      // Validação de tamanho da imagem (5MB)
       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
       if (file.size > MAX_FILE_SIZE) {
         return res.status(400).json({
@@ -125,18 +170,15 @@ export class UserController {
         });
       }
 
-      // Buscar perfil atual para verificar se já existe imagem antiga
       const currentUser = await prisma.usuario.findUnique({
         where: { id: userId },
         select: { fotoPerfil: true },
       });
 
       if (currentUser?.fotoPerfil) {
-        // Tentar apagar a foto antiga do MinIO
         await deleteAvatarFromMinio(currentUser.fotoPerfil);
       }
 
-      // Upload para o MinIO
       const { url } = await uploadAvatarToMinio(
         file.buffer,
         file.originalname,
@@ -144,7 +186,6 @@ export class UserController {
         userId
       );
 
-      // Atualizar a referência da imagem no banco de dados MySQL
       const updatedUser = await prisma.usuario.update({
         where: { id: userId },
         data: { fotoPerfil: url },
@@ -153,6 +194,7 @@ export class UserController {
           nome: true,
           email: true,
           role: true,
+          isPremium: true,
           bio: true,
           fotoPerfil: true,
           criadoEm: true,
@@ -184,7 +226,6 @@ export class UserController {
 
       const stream = await getAvatarFromMinio(filename);
 
-      // Definir Content-Type dinâmico
       const ext = filename.split(".").pop()?.toLowerCase();
       let contentType = "image/jpeg";
       if (ext === "png") contentType = "image/png";
@@ -229,6 +270,7 @@ export class UserController {
           nome: true,
           email: true,
           role: true,
+          isPremium: true,
           bio: true,
           fotoPerfil: true,
           criadoEm: true,
