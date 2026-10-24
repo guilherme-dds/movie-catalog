@@ -1,4 +1,6 @@
-# CineHanks - Catálogo de Filmes & Microserviços
+# CineHanks
+
+> Projeto continua no novo repositório: [Kreato](https://github.com/guilherme-dds/kreato)
 
 Aplicação web fullstack e orientada a microserviços para exploração, avaliação e gerenciamento de filmes do ator Tom Hanks. O sistema integra a API do TMDB (The Movie Database), autenticação distribuída com JWT e Refresh Tokens, armazenamento de imagens de perfil via **MinIO (Object Storage S3)**, mensageria e auditoria em tempo real com **Redis Streams**, e banco de dados relacional MySQL. 
 
